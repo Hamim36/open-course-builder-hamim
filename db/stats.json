@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "last_modified": "2026-06-05T11:22:44.852Z",
+  "last_modified": "2026-06-05T11:41:44.845Z",
   "progress": {
     "total_topics": 2,
     "completed_topics": 2,
@@ -64,6 +64,14 @@
     {
       "session_id": "a2613a5f-b07d-49f7-8055-b0c78fc5849a",
       "started_at": "2026-06-05T11:21:44.822Z",
+      "ended_at": null,
+      "duration_seconds": 0,
+      "topics_interacted": [],
+      "date": "2026-06-05"
+    },
+    {
+      "session_id": "8b551ab5-f2ff-4231-982d-c55a70986b2f",
+      "started_at": "2026-06-05T11:37:15.483Z",
       "ended_at": null,
       "duration_seconds": 0,
       "topics_interacted": [],
