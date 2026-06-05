@@ -1,23 +1,23 @@
 {
   "schema_version": "1.0.0",
-  "last_modified": "2026-06-05T11:19:44.053Z",
+  "last_modified": "2026-06-05T12:25:29.880Z",
   "course": {
-    "id": "edcc1c30-714c-4fb2-9d66-8bff35edaa5d",
-    "name": "Smoke Test Course",
-    "description": "created via curl",
-    "created_at": "2026-06-05T07:07:30.078Z",
-    "updated_at": "2026-06-05T07:11:24.196Z",
+    "id": "b6e9f63d-6d28-43fd-98a8-eb07a66fbc30",
+    "name": "Smoke Import Test 1780662329866",
+    "description": "Created by smoke-ui",
+    "created_at": "2026-06-05T12:25:29.880Z",
+    "updated_at": "2026-06-05T12:25:29.880Z",
     "modules": [
       {
-        "id": "5a73d8d2-8e45-41fa-af0f-9d5d93422bba",
-        "name": "Module A (renamed)",
+        "id": "19ee77ed-c12e-4ac6-8ebf-58606a3fe310",
+        "name": "Module 1",
         "order": 1,
-        "created_at": "2026-06-05T07:07:30.078Z",
-        "updated_at": "2026-06-05T07:11:24.196Z",
+        "created_at": "2026-06-05T12:25:29.880Z",
+        "updated_at": "2026-06-05T12:25:29.880Z",
         "topics": [
           {
-            "id": "e8cc17f3-b5eb-40f9-be07-c59bd780bcc7",
-            "name": "Topic 1",
+            "id": "94f6e9ef-ae0b-485c-9a67-45d3d8fc8469",
+            "name": "Topic A",
             "description": "",
             "order": 1,
             "content_type": "website",
@@ -25,37 +25,29 @@
             "local_file_path": "",
             "local_file_name": "",
             "text_content": "",
-            "is_completed": true,
-            "completed_at": "2026-06-05T11:19:44.042Z",
-            "notes": "test note from script",
-            "created_at": "2026-06-05T07:07:30.078Z",
-            "updated_at": "2026-06-05T11:19:44.053Z"
+            "is_completed": false,
+            "completed_at": null,
+            "notes": "",
+            "created_at": "2026-06-05T12:25:29.880Z",
+            "updated_at": "2026-06-05T12:25:29.880Z"
           },
           {
-            "id": "c79dab99-8a7a-4ecc-8e30-1fba366669b5",
-            "name": "Topic 2",
+            "id": "c80236d8-90ba-4290-b00c-730871e69c24",
+            "name": "Topic B",
             "description": "",
             "order": 2,
-            "content_type": "video",
-            "url": "https://example.com/v",
+            "content_type": "text",
+            "url": "",
             "local_file_path": "",
             "local_file_name": "",
-            "text_content": "",
-            "is_completed": true,
-            "completed_at": "2026-06-05T07:11:04.759Z",
+            "text_content": "Hello",
+            "is_completed": false,
+            "completed_at": null,
             "notes": "",
-            "created_at": "2026-06-05T07:07:30.078Z",
-            "updated_at": "2026-06-05T07:11:24.196Z"
+            "created_at": "2026-06-05T12:25:29.880Z",
+            "updated_at": "2026-06-05T12:25:29.880Z"
           }
         ]
-      },
-      {
-        "id": "049b0456-7c4b-44f1-9202-44ba279f3372",
-        "name": "Module B",
-        "order": 2,
-        "created_at": "2026-06-05T07:07:30.078Z",
-        "updated_at": "2026-06-05T07:11:24.196Z",
-        "topics": []
       }
     ]
   }
