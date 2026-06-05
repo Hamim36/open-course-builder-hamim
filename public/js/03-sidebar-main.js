@@ -3,6 +3,23 @@
    ============================================================================ */
 'use strict';
 
+// Derive the set of completed topic ids from the canonical source of truth
+// (the course itself). The backend stats object does not maintain a
+// `completed_topics_list`, so we walk every module and collect `is_completed`
+// flags. Returns a Set<string> for O(1) lookups.
+function getCompletedTopicSet() {
+  const ids = [];
+  const course = AppState.course;
+  if (course && Array.isArray(course.modules)) {
+    course.modules.forEach(m => {
+      if (Array.isArray(m.topics)) {
+        m.topics.forEach(t => { if (t && t.is_completed && t.id) ids.push(t.id); });
+      }
+    });
+  }
+  return new Set(ids);
+}
+
 const Sidebar = {
   render() {
     const list = $('#sidebar-list');
@@ -72,14 +89,14 @@ const Main = {
     Session.trackModuleVisit(m.id);
     const mp = (AppState.stats && AppState.stats.module_progress && AppState.stats.module_progress[m.id]) || { completed: 0, total: (m.topics || []).length };
     const pct = mp.total ? Math.round((mp.completed / mp.total) * 100) : 0;
-    const completedSet = new Set((AppState.stats && AppState.stats.completed_topics_list) || []);
+    const completedSet = getCompletedTopicSet();
     const topics = m.topics || [];
     const cards = topics.map(t => {
       const done = completedSet.has(t.id);
       const type = t.content_type || 'website';
       const typeLbl = CONTENT_TYPE_LABEL[type] || 'Other';
       const icon = TYPE_BADGE_ICON[type] || 'link-45deg';
-      const desc = (t.description || t.url || t.local_path || '').toString();
+      const desc = (t.description || t.url || t.local_file_path || t.local_file_name || '').toString();
       return `
         <div class="topic-card ${done ? 'completed' : ''}" data-mod="${escapeHtml(m.id)}" data-top="${escapeHtml(t.id)}">
           <div class="topic-check ${done ? 'checked' : ''}" data-act="toggle" data-mod="${escapeHtml(m.id)}" data-top="${escapeHtml(t.id)}"><i class="bi ${done ? 'bi-check-circle-fill' : 'bi-circle'}"></i></div>
@@ -113,7 +130,7 @@ const Main = {
     });
   },
   async toggleComplete(mid, tid) {
-    const completedSet = new Set((AppState.stats && AppState.stats.completed_topics_list) || []);
+    const completedSet = getCompletedTopicSet();
     const isDone = completedSet.has(tid);
     try {
       const res = await API.patch(`/api/topics/${encodeURIComponent(tid)}/complete`, { completed: !isDone });
