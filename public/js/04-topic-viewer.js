@@ -97,7 +97,7 @@ const TopicViewer = {
     $('#tv-meta', bodyEl).innerHTML = `
       <div class="meta-row"><span>Type</span><span>${escapeHtml(CONTENT_TYPE_LABEL[t.content_type] || 'Other')}</span></div>
       ${t.url ? `<div class="meta-row"><span>URL</span><a href="${escapeHtml(sanitizeUrl(t.url))}" target="_blank" rel="noopener noreferrer">open <i class="bi bi-box-arrow-up-right"></i></a></div>` : ''}
-      ${t.local_path ? `<div class="meta-row"><span>File</span><span>${escapeHtml(t.local_path)}</span></div>` : ''}
+      ${(t.local_file_path || t.local_file_name || t.local_path) ? `<div class="meta-row"><span>File</span><span>${escapeHtml(t.local_file_name || t.local_file_path || t.local_path || '')}</span></div>` : ''}
       <div class="meta-row"><span>ID</span><span style="font-family:var(--font-mono);font-size:11px;">${escapeHtml(t.id)}</span></div>
     `;
 
@@ -138,10 +138,10 @@ const TopicViewer = {
       const src = t.url || this._fileUrl(t);
       wrap.innerHTML = `<iframe src="${escapeHtml(src || '')}" title="PDF"></iframe>`;
     } else if (type === 'markdown') {
-      const html = DOMPurify.sanitize(marked.parse(t.content || t.url || ''));
+      const html = DOMPurify.sanitize(marked.parse(t.text_content || t.url || ''));
       wrap.innerHTML = `<div class="md-rendered">${html}</div>`;
     } else if (type === 'text' || type === 'text_content') {
-      const text = t.content || t.url || '';
+      const text = t.text_content || t.url || '';
       wrap.innerHTML = `<pre class="text-content">${escapeHtml(text)}</pre>`;
     } else if (type === 'document') {
       const src = t.url || this._fileUrl(t);
@@ -170,19 +170,34 @@ const TopicViewer = {
     `;
   },
   _fileUrl(t) {
-    if (t.local_path && t.local_path.startsWith('offline-files/')) {
-      return '/' + t.local_path;
+    // Backend stores the relative path in t.local_file_path. The original
+    // `local_path` key is kept as a fallback for any older payloads.
+    const rel = t.local_file_path || t.local_path || '';
+    if (!rel) return '';
+    if (rel.startsWith('offline-files/')) {
+      return '/' + rel;
     }
-    if (t.local_path) return '/offline-files/' + t.local_path.replace(/^\/+/, '');
-    return '';
+    if (rel.startsWith('/offline-files/')) return rel;
+    return '/offline-files/' + rel.replace(/^\/+/, '');
   },
   async _loadNotes(tid) {
-    try {
-      const r = await API.get(`/api/topics/${encodeURIComponent(tid)}/notes`);
-      const el = $('#tv-notes'); if (el) el.value = r.notes || '';
-      const st = $('#tv-notes-status');
-      if (st && r.updated_at) st.textContent = `Last saved ${NOTE_TS_FORMATTER.format(new Date(r.updated_at))}`;
-    } catch (e) { Toast.error('Failed to load notes', e.message); }
+    // Notes live on the topic object in the loaded course (PATCH /api/topics/:id/notes
+    // is the only notes endpoint; no GET exists). Read directly from AppState.
+    const el = $('#tv-notes');
+    const st = $('#tv-notes-status');
+    let topic = null;
+    if (this.current && this.current.t && this.current.t.id === tid) {
+      topic = this.current.t;
+    } else if (AppState.course) {
+      for (const m of AppState.course.modules || []) {
+        const found = (m.topics || []).find(x => x.id === tid);
+        if (found) { topic = found; break; }
+      }
+    }
+    if (!topic) return;
+    if (el) el.value = topic.notes || '';
+    if (st && topic.updated_at) st.textContent = `Last saved ${NOTE_TS_FORMATTER.format(new Date(topic.updated_at))}`;
+    else if (st) st.textContent = '';
   },
   _scheduleSaveNotes(tid, value) {
     if (this.notesTimer) clearTimeout(this.notesTimer);
