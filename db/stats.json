@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0.0",
+  "last_modified": "2026-06-05T07:11:24.203Z",
+  "progress": {
+    "total_topics": 2,
+    "completed_topics": 1,
+    "completion_percentage": 50,
+    "module_progress": {
+      "5a73d8d2-8e45-41fa-af0f-9d5d93422bba": {
+        "total": 2,
+        "completed": 1,
+        "percentage": 50
+      },
+      "049b0456-7c4b-44f1-9202-44ba279f3372": {
+        "total": 0,
+        "completed": 0,
+        "percentage": 0
+      }
+    }
+  },
+  "streak": {
+    "current": 1,
+    "longest": 1,
+    "last_activity_date": "2026-06-05"
+  },
+  "heatmap": {
+    "2026-06-05": {
+      "study_time_seconds": 0,
+      "topics_completed": 0,
+      "topics_viewed": [
+        "e8cc17f3-b5eb-40f9-be07-c59bd780bcc7"
+      ]
+    }
+  },
+  "weekly_study": {},
+  "sessions": [],
+  "upcoming_lessons": [
+    "e8cc17f3-b5eb-40f9-be07-c59bd780bcc7"
+  ]
+}

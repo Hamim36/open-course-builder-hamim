@@ -1,0 +1,6 @@
+offline-files/
+.env
+node_modules/
+*.tmp
+db/*.backup
+db/*.corrupt.*
