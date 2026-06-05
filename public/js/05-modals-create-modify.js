@@ -28,7 +28,12 @@ const CreateCourse = {
   async _loadTemp() {
     try {
       const r = await API.get('/api/temp-course');
-      if (r && r.draft) { this.draft = r.draft; this._renderContent(); Toast.info('Restored unsaved draft'); }
+      // /api/temp-course returns { schema_version, is_active, last_saved, course }.
+      if (r && r.course && r.is_active) {
+        this.draft = r.course;
+        this._renderContent();
+        Toast.info('Restored unsaved draft');
+      }
     } catch (e) { /* no draft */ }
   },
   _scheduleAutosave() {
@@ -36,7 +41,7 @@ const CreateCourse = {
     this.autosaveTimer = setTimeout(() => this._autosave(), AUTOSAVE_DEBOUNCE_MS);
   },
   async _autosave() {
-    try { await API.put('/api/temp-course', { draft: this.draft }); } catch (e) { /* silent */ }
+    try { await API.put('/api/temp-course', { course: this.draft }); } catch (e) { /* silent */ }
   },
   _renderShell() {
     const body = $('#cc-body'); if (!body) return;
