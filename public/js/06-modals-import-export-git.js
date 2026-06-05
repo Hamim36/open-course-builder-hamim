@@ -5,38 +5,111 @@
 
 const Import = {
   el: null, bsModal: null,
+  _pendingFile: null,
   init() {
     if (this.el) return;
     this.el = document.getElementById('importModal');
     if (!this.el) return;
     this.bsModal = new bootstrap.Modal(this.el, { backdrop: true, keyboard: true });
-    const dz = $('#import-drop');
-    if (dz) {
-      ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('drag'); }));
-      ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove('drag'); }));
-      dz.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) this._upload(e.dataTransfer.files[0]); });
+
+    const dropzone = $('#import-dropzone');
+    const fileInput = $('#import-file-input');
+    const uploadBtn = $('#import-upload');
+    const fileInfo = $('#import-file-info');
+
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (f) this._setPendingFile(f);
+      });
     }
-    const fi = $('#import-file');
-    if (fi) fi.addEventListener('change', (e) => { if (e.target.files.length) this._upload(e.target.files[0]); });
+    if (dropzone && fileInput) {
+      // Click-to-browse: clicking the dropzone (but not the inner input) opens the file picker
+      dropzone.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'import-file-input') return;
+        fileInput.click();
+      });
+      // Drag & drop
+      ['dragenter', 'dragover'].forEach(ev => dropzone.addEventListener(ev, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        dropzone.classList.add('drag');
+      }));
+      ['dragleave', 'drop'].forEach(ev => dropzone.addEventListener(ev, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        dropzone.classList.remove('drag');
+      }));
+      dropzone.addEventListener('drop', (e) => {
+        const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (f) {
+          // Mirror the file into the hidden input so subsequent selection-change events behave
+          try {
+            const dt = new DataTransfer();
+            dt.items.add(f);
+            fileInput.files = dt.files;
+          } catch (_) { /* jsdom/older browsers may not support DataTransfer; fall through */ }
+          this._setPendingFile(f);
+        }
+      });
+    }
+    if (uploadBtn) {
+      uploadBtn.addEventListener('click', () => {
+        if (this._pendingFile) this._upload(this._pendingFile);
+      });
+    }
+
+    // Reset state when modal is dismissed
+    this.el.addEventListener('hidden.bs.modal', () => {
+      this._pendingFile = null;
+      if (fileInput) fileInput.value = '';
+      if (fileInfo) fileInfo.textContent = '';
+      const err = $('#import-error'); if (err) { err.style.display = 'none'; err.textContent = ''; }
+      const warn = $('#import-warning'); if (warn) warn.style.display = 'none';
+      if (uploadBtn) uploadBtn.disabled = true;
+    });
+  },
+  _setPendingFile(file) {
+    this._pendingFile = file;
+    const fileInfo = $('#import-file-info');
+    if (fileInfo) fileInfo.textContent = `${file.name} (${formatBytes(file.size)})`;
+    const uploadBtn = $('#import-upload');
+    if (uploadBtn) uploadBtn.disabled = false;
+    const err = $('#import-error'); if (err) { err.style.display = 'none'; err.textContent = ''; }
+    const warn = $('#import-warning');
+    if (warn && AppState.course) warn.style.display = '';
   },
   open() {
     this.init();
-    const status = $('#import-status'); if (status) status.textContent = '';
+    const warn = $('#import-warning');
+    if (warn) warn.style.display = AppState.course ? '' : 'none';
     this.bsModal.show();
   },
   async _upload(file) {
     if (!file) return;
-    const status = $('#import-status'); if (status) status.textContent = 'Uploading…';
+    const errBox = $('#import-error');
+    if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
+    const uploadBtn = $('#import-upload');
+    if (uploadBtn) uploadBtn.disabled = true;
     try {
       const fd = new FormData(); fd.append('file', file);
-      const r = await API.upload('/api/courses/import', fd);
-      AppState.course = r.course; AppState.stats = r.stats;
-      AppState.selectedModuleId = r.course.modules[0] ? r.course.modules[0].id : null;
+      const r = await API.upload('/api/course/import', fd);
+      // Server response shape: { success: true, course: <wrapped> } where <wrapped> = { schema_version, last_modified, course: { ... } }
+      const wrapped = r && r.course;
+      const innerCourse = wrapped && wrapped.course ? wrapped.course : wrapped;
+      if (!innerCourse || !Array.isArray(innerCourse.modules)) throw new Error('Server returned unexpected payload');
+      AppState.course = innerCourse;
+      // Refresh stats from server (the import handler resets progress/heatmap fields server-side)
+      if (typeof loadInitialData === 'function') {
+        try { await loadInitialData(); } catch (_) { /* non-fatal: keep current stats */ }
+      }
+      AppState.selectedModuleId = innerCourse.modules[0] ? innerCourse.modules[0].id : null;
       Navbar.render(); Sidebar.render(); Main.render();
-      if (status) status.innerHTML = '<span class="text-success">Imported.</span>';
       Toast.success('Course imported');
-      setTimeout(() => this.bsModal.hide(), 700);
-    } catch (e) { if (status) status.innerHTML = `<span class="text-danger">${escapeHtml(e.message)}</span>`; Toast.error('Import failed', e.message); }
+      this.bsModal.hide();
+    } catch (e) {
+      if (errBox) { errBox.textContent = e.message || String(e); errBox.style.display = ''; }
+      Toast.error('Import failed', e.message);
+      if (uploadBtn) uploadBtn.disabled = false;
+    }
   }
 };
 
@@ -47,35 +120,37 @@ const Export = {
     this.el = document.getElementById('exportModal');
     if (!this.el) return;
     this.bsModal = new bootstrap.Modal(this.el, { backdrop: true, keyboard: true });
+
+    const tplBtn = $('#export-template');
+    const progBtn = $('#export-progress');
+    if (tplBtn) tplBtn.addEventListener('click', () => this._export(false));
+    if (progBtn) progBtn.addEventListener('click', () => this._export(true));
   },
   open() {
     this.init();
     if (!AppState.course) { Toast.warning('No course to export'); return; }
-    this._render();
     this.bsModal.show();
   },
-  _render() {
-    const body = $('#export-body'); if (!body) return;
-    body.innerHTML = `
-      <div class="mb-3">
-        <label class="form-label">Course name</label>
-        <input id="ex-name" class="form-control" value="${escapeHtml(AppState.course.name || '')}">
-      </div>
-      <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" id="ex-include-progress" checked>
-        <label class="form-check-label" for="ex-include-progress">Include progress / notes / heatmap</label>
-      </div>
-      <div class="alert alert-info" style="font-size:13px;"><i class="bi bi-info-circle"></i> Exports a single JSON file with your full course. Use Import to load it on another machine.</div>
-    `;
-  },
-  async _export() {
-    const includeProgress = $('#ex-include-progress').checked;
-    const name = $('#ex-name').value.trim() || (AppState.course.name || 'course');
-    const payload = { course: AppState.course, progress: includeProgress ? (AppState.stats || {}) : null, exported_at: new Date().toISOString() };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    downloadBlob(blob, sanitizeFilename(`${name}.json`));
-    Toast.success('Exported');
-    this.bsModal.hide();
+  async _export(includeStats) {
+    if (!AppState.course) { Toast.warning('No course to export'); return; }
+    try {
+      DS.showLoader(includeStats ? 'Exporting with progress…' : 'Exporting template…');
+      const url = `/api/course/export?include_stats=${includeStats ? 'true' : 'false'}`;
+      const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!r.ok) {
+        const body = await r.text().catch(() => '');
+        throw new Error(`Export failed: HTTP ${r.status} ${body.slice(0, 120)}`);
+      }
+      const blob = await r.blob();
+      const baseName = sanitizeFilename(AppState.course.name || 'course');
+      downloadBlob(blob, `${baseName}-${includeStats ? 'with-progress' : 'template'}.json`);
+      DS.hideLoader();
+      Toast.success(includeStats ? 'Exported with progress' : 'Template exported');
+      this.bsModal.hide();
+    } catch (e) {
+      DS.hideLoader();
+      Toast.error('Export failed', e.message);
+    }
   }
 };
 
@@ -83,14 +158,15 @@ const GitModal = {
   el: null, bsModal: null,
   init() {
     if (this.el) return;
-    this.el = document.getElementById('gitModal');
+    this.el = document.getElementById('gitConfigModal');
     if (!this.el) return;
     this.bsModal = new bootstrap.Modal(this.el, { backdrop: true, keyboard: true });
-    const saveBtn = $('#git-save');
+    const saveBtn = $('#git-save-config');
     if (saveBtn) saveBtn.addEventListener('click', () => this._saveConfig());
   },
   open() {
     this.init();
+    if (!this.el) return; // modal not present in DOM
     this._loadConfig();
     this.bsModal.show();
   },
@@ -98,16 +174,13 @@ const GitModal = {
     try {
       const cfg = await API.get('/api/git/config');
       $('#git-url').value = cfg.repo || '';
-      $('#git-branch').value = cfg.branch || 'main';
-      $('#git-token').value = cfg.token || '';
-      $('#git-enabled').checked = !!cfg.enabled;
-      $('#git-author-name').value = cfg.author_name || '';
-      $('#git-author-email').value = cfg.author_email || '';
+      $('#git-name').value = cfg.author_name || '';
+      $('#git-email').value = cfg.author_email || '';
       this._renderStatus(cfg.last_status || null);
     } catch (e) { Toast.error('Failed to load git config', e.message); }
   },
   _renderStatus(st) {
-    const wrap = $('#git-status'); if (!wrap) return;
+    const wrap = $('#git-status-info'); if (!wrap) return;
     if (!st) { wrap.innerHTML = '<div class="text-muted-2" style="font-size:12px;">No sync history yet.</div>'; return; }
     wrap.innerHTML = `
       <div class="git-status-row"><span>Last sync</span><span>${st.last_sync_at ? new Date(st.last_sync_at).toLocaleString() : '—'}</span></div>
@@ -118,11 +191,11 @@ const GitModal = {
   async _saveConfig() {
     const payload = {
       repo: $('#git-url').value.trim(),
-      branch: $('#git-branch').value.trim() || 'main',
-      token: $('#git-token').value.trim(),
-      enabled: $('#git-enabled').checked,
-      author_name: $('#git-author-name').value.trim(),
-      author_email: $('#git-author-email').value.trim()
+      branch: 'main',
+      token: '',
+      enabled: $('#git-url').value.trim().length > 0,
+      author_name: $('#git-name').value.trim(),
+      author_email: $('#git-email').value.trim()
     };
     if (payload.enabled && !GITHUB_RE.test(payload.repo)) { Toast.warning('Invalid GitHub repo URL'); return; }
     try {
@@ -145,20 +218,24 @@ const GitModal = {
   }
 };
 
+function formatBytes(n) {
+  if (!Number.isFinite(n)) return '';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
+
 function wireGlobal() {
-  // Navbar buttons
+  // Navbar dropdown menu items
+  const m1 = $('#menu-create-course');  if (m1) m1.addEventListener('click', () => CreateCourse.open());
+  const m2 = $('#menu-manage-course');   if (m2) m2.addEventListener('click', () => ModifyCourse.open());
+  const m3 = $('#menu-import-course');   if (m3) m3.addEventListener('click', () => Import.open());
+  const m4 = $('#menu-export-course');   if (m4) m4.addEventListener('click', () => Export.open());
+
+  // Navbar stat click (heatmap toggle, etc.) — keep for legacy safety
   $$('.nav-stat').forEach(el => el.addEventListener('click', () => {
     const act = el.dataset.act;
     if (act === 'toggle-heat') Heatmap.toggle();
-  }));
-  $$('[data-action]').forEach(el => el.addEventListener('click', () => {
-    const a = el.dataset.action;
-    if (a === 'create') CreateCourse.open();
-    else if (a === 'modify') ModifyCourse.open();
-    else if (a === 'import') Import.open();
-    else if (a === 'export') Export.open();
-    else if (a === 'git') GitModal.open();
-    else if (a === 'save') GitModal.save();
   }));
 
   // Topic viewer navigation buttons
@@ -179,22 +256,31 @@ function wireGlobal() {
   const mcSave = $('#mc-save'), mcDiscard = $('#mc-discard');
   if (mcSave) mcSave.addEventListener('click', () => ModifyCourse._save());
   if (mcDiscard) mcDiscard.addEventListener('click', () => ModifyCourse._discard());
-
-  // Export
-  const exBtn = $('#export-go');
-  if (exBtn) exBtn.addEventListener('click', () => Export._export());
 }
 
 function wireKeyboard() {
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+
+    // Ctrl+Shift+S → save to git
+    if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')) {
+      if (AppState.course) GitModal.save();
+      e.preventDefault();
+      return;
+    }
+    // Ctrl+S → also save to git (common muscle memory)
+    if (e.ctrlKey && !e.shiftKey && (e.key === 'S' || e.key === 's')) {
+      if (AppState.course) GitModal.save();
+      e.preventDefault();
+      return;
+    }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+
     if (e.key === 'n' || e.key === 'N') { CreateCourse.open(); e.preventDefault(); }
     else if (e.key === 'm' || e.key === 'M') { if (AppState.course) ModifyCourse.open(); e.preventDefault(); }
     else if (e.key === 'i' || e.key === 'I') { Import.open(); e.preventDefault(); }
     else if (e.key === 'e' || e.key === 'E') { if (AppState.course) Export.open(); e.preventDefault(); }
     else if (e.key === 'g' || e.key === 'G') { GitModal.open(); e.preventDefault(); }
-    else if (e.key === 's' || e.key === 'S') { if (AppState.course) GitModal.save(); e.preventDefault(); }
     else if (e.key === 'h' || e.key === 'H') { Heatmap.toggle(); e.preventDefault(); }
     else if (e.key === 'Escape') { Heatmap.close(); }
   });
