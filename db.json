@@ -1,0 +1,40 @@
+{
+  "courses": [
+    {
+      "id": "14e6bf87-a3e8-4015-ab64-290dab55300f",
+      "title": "web dev",
+      "description": "jello",
+      "createdAt": "2026-06-06T09:19:24.420Z",
+      "updatedAt": "2026-06-06T09:35:50.307Z",
+      "lessons": [
+        {
+          "id": "36d01516-9aa2-4478-baca-54b8cbd4d3fc",
+          "title": "task",
+          "type": "markdown",
+          "resource": "",
+          "notes": "# Open Course Builder\n\nA simple CRUD app that collects every kind of learning resource for a course in one place: YouTube links, articles, website URLs, PDFs, audio, video, images, and plain text notes. Backed by a single `db.json` file and a tiny Node/Express server.\n\n## Stack\n- **Frontend:** HTML, Bootstrap 5, vanilla JS (no build step).\n- **Backend:** Node + Express, `multer` for file uploads, `uuid` for IDs.\n- **Storage:** `db.json` (auto-created) + `uploads/` directory for uploaded files.\n\n## Run\n```bash\nnpm install\nnpm start\n```\nThen open http://localhost:3000\n\n## Project layout\n```\nopen-course-builder/\n├── server.js        # Express API + static server\n├── package.json\n├── db.json          # JSON database (auto-created)\n├── public/          # Static frontend\n│   ├── index.html\n│   ├── app.js\n│   └── styles.css\n└── uploads/         # Uploaded files land here\n```\n\n## API\n- `GET    /api/courses` — list courses\n- `POST   /api/courses` — create a course (with optional `lessons[]`)\n- `GET    /api/courses/:id` — get one course\n- `PUT    /api/courses/:id` — update title/description\n- `DELETE /api/courses/:id` — delete a course\n- `POST   /api/courses/:id/lessons` — add a lesson\n- `PUT    /api/courses/:id/lessons/:lessonId` — update a lesson\n- `PATCH  /api/courses/:id/lessons/:lessonId/toggle` — toggle `isCompleted`\n- `DELETE /api/courses/:id/lessons/:lessonId` — delete a lesson\n- `POST   /api/upload` (multipart `file`) — returns `{ name, path, size, mimetype }`\n\n## Lesson shape\n```json\n{\n  \"id\": \"uuid\",\n  \"title\": \"Flexbox basics\",\n  \"type\": \"youtube | article | website | pdf | audio | video | image | text\",\n  \"resource\": \"https://... or /uploads/file.pdf or ''\",\n  \"notes\": \"free-form notes\",\n  \"isCompleted\": false,\n  \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n}\n```\n\nResource type is auto-detected from the URL/extension. You can override it explicitly.\n",
+          "isCompleted": true,
+          "createdAt": "2026-06-06T09:20:10.928Z"
+        },
+        {
+          "id": "e2400c84-885b-407d-845a-a295cd70ac31",
+          "title": "pdf",
+          "type": "pdf",
+          "resource": "/uploads/1780737646214-b329b514-2504.19874v1.pdf",
+          "notes": "hello",
+          "isCompleted": true,
+          "createdAt": "2026-06-06T09:20:50.845Z"
+        },
+        {
+          "id": "3918b72d-8562-44d9-80f0-103379d88f5b",
+          "title": "website",
+          "type": "website",
+          "resource": "https://www.w3schools.com/html/",
+          "notes": "web site link",
+          "isCompleted": false,
+          "createdAt": "2026-06-06T09:27:05.166Z"
+        }
+      ]
+    }
+  ]
+}
