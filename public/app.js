@@ -80,7 +80,7 @@
     previewModalEl: $('#previewModal'),
     previewTitle: $('#previewTitle'),
     previewBody: $('#previewBody'),
-    previewExternalLink: $('#previewExternalLink'),
+    previewModal: $('#previewModal') ? new bootstrap.Modal($('#previewModal')) : null,
 
     confirmModalEl: $('#confirmModal'),
     confirmTitle: $('#confirmTitle'),
@@ -729,7 +729,7 @@
       if (openBtn && lesson) {
         openBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          openPreview(lesson);
+          openLessonResource(lesson);
         });
       }
       // Preview on clicking the resource link
@@ -740,7 +740,7 @@
         if (!isExternal) {
           link.addEventListener('click', (e) => {
             e.preventDefault();
-            openPreview(lesson);
+            openLessonResource(lesson);
           });
         }
       }
@@ -749,7 +749,7 @@
       if (titleEl && lesson) {
         titleEl.addEventListener('click', (e) => {
           e.preventDefault();
-          openPreview(lesson);
+          openLessonResource(lesson);
         });
         titleEl.style.cursor = 'pointer';
       }
@@ -1076,6 +1076,29 @@
   }
 
   // ---------- Preview ------------------------------------------------------
+  // Entry point used by the "Open" button, the title click, and the inline
+  // resource link on each lesson row. For types that embed cleanly in the
+  // modal (image / video / audio / pdf / youtube / text / markdown) we open
+  // the preview modal. For everything else — `website`, `article`, or any
+  // resource that is a plain external URL — we open the resource in a new
+  // browser tab instead. This sidesteps the X-Frame-Options /
+  // Content-Security-Policy: frame-ancestors headers that many sites send
+  // (e.g. w3schools, GitHub, Facebook) which forbid embedding and would
+  // otherwise just show a blank iframe or a "can't be embedded" error page.
+  function openLessonResource(lesson) {
+    const type = lesson && lesson.type;
+    const resource = (lesson && lesson.resource) || '';
+    const modalTypes = new Set(['image', 'video', 'audio', 'pdf', 'youtube', 'text', 'markdown']);
+    if (type && modalTypes.has(type)) {
+      openPreview(lesson);
+      return;
+    }
+    // Link-based / external / unknown types → new tab.
+    if (resource) {
+      window.open(resource, '_blank', 'noopener,noreferrer');
+    }
+  }
+
   // Some destinations send `X-Frame-Options: DENY` or
   // `Content-Security-Policy: frame-ancestors 'none'`, which makes the
   // browser refuse to render them inside our iframe (e.g. w3schools, GitHub,
@@ -1088,20 +1111,6 @@
     const body = els.previewBody;
     const type = lesson.type;
     const resource = lesson.resource || '';
-
-    // "Open in new tab" header link: always reflects the current resource so
-    // users always have a one-click escape hatch, even when the destination
-    // blocks embedding.
-    if (els.previewExternalLink) {
-      const extTypes = new Set(['website', 'article', 'pdf', 'video', 'audio', 'image', 'youtube']);
-      if (resource && extTypes.has(type)) {
-        els.previewExternalLink.setAttribute('href', resource);
-        els.previewExternalLink.classList.remove('d-none');
-      } else {
-        els.previewExternalLink.setAttribute('href', '#');
-        els.previewExternalLink.classList.add('d-none');
-      }
-    }
 
     // Sync-rendered types (text/markdown) skip the loading flash; async/media types
     // show a brief "Loading..." placeholder while the iframe/img loads.
