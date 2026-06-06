@@ -5,7 +5,7 @@
       "title": "web dev",
       "description": "jello",
       "createdAt": "2026-06-06T09:19:24.420Z",
-      "updatedAt": "2026-06-06T09:35:50.307Z",
+      "updatedAt": "2026-06-06T11:28:17.782Z",
       "lessons": [
         {
           "id": "36d01516-9aa2-4478-baca-54b8cbd4d3fc",
@@ -33,8 +33,8 @@
           "type": "website",
           "resource": "https://www.w3schools.com/html/",
           "notes": "web site link",
-          "isCompleted": false,
-          "completeDate": null,
+          "isCompleted": true,
+          "completeDate": "2026-06-06T11:28:17.782Z",
           "createdAt": "2026-06-06T09:27:05.166Z"
         }
       ]
