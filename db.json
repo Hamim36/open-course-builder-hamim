@@ -74,7 +74,7 @@
       "title": "mobile dev",
       "description": "android and ios development course plan",
       "createdAt": "2026-06-06T18:17:07.403Z",
-      "updatedAt": "2026-06-06T18:18:05.119Z",
+      "updatedAt": "2026-06-06T18:38:29.330Z",
       "lessons": [
         {
           "id": "fc69497e-6734-4676-95e6-2ac16b9d43a3",
@@ -82,8 +82,8 @@
           "type": "text",
           "resource": "",
           "notes": "hello mobile devs",
-          "isCompleted": true,
-          "completeDate": "2026-06-06T18:18:05.119Z",
+          "isCompleted": false,
+          "completeDate": null,
           "createdAt": "2026-06-06T18:17:37.198Z"
         }
       ]
