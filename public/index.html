@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Open Course Builder</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <!-- Top nav -->
+    <nav class="navbar navbar-light bg-white border-bottom sticky-top">
+      <div class="container">
+        <a class="navbar-brand fw-semibold d-flex align-items-center gap-2" href="#">
+          <i class="bi bi-mortarboard-fill text-primary"></i>
+          <span>Open Course Builder</span>
+        </a>
+        <div class="d-flex align-items-center gap-2">
+          <span id="courseCount" class="text-muted small"></span>
+          <button class="btn btn-primary btn-sm ocb-action-btn" id="newCourseBtn">
+            <i class="bi bi-plus-lg me-1"></i> New Course
+          </button>
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            id="toggleActionsBtn"
+            title="Hide create / edit / delete actions"
+            aria-pressed="false"
+          >
+            <i class="bi bi-eye"></i>
+            <span class="d-none d-md-inline ms-1">View mode</span>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container py-4">
+      <!-- Course list view -->
+      <section id="coursesView">
+        <div id="emptyState" class="empty-state text-center py-5 d-none">
+          <div class="empty-state-icon">
+            <i class="bi bi-mortarboard-fill"></i>
+          </div>
+          <h3 class="mt-3 mb-2">No courses yet</h3>
+          <p class="text-muted mb-4">Create your first course to start collecting learning resources in one place.</p>
+          <button class="btn btn-primary btn-lg ocb-action-btn" id="emptyCreateBtn">
+            <i class="bi bi-plus-lg me-1"></i> Create your first course
+          </button>
+        </div>
+        <div id="coursesList" class="row g-3"></div>
+      </section>
+
+      <!-- Course detail view -->
+      <section id="courseDetailView" class="d-none">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div>
+            <button class="btn btn-link p-0 text-decoration-none" id="backToCourses">
+              <i class="bi bi-arrow-left me-1"></i> All courses
+            </button>
+            <h2 class="mb-0 mt-1" id="detailTitle"></h2>
+            <p class="text-muted mb-0" id="detailMeta"></p>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary ocb-action-btn" id="editCourseBtn">
+              <i class="bi bi-pencil"></i> Edit
+            </button>
+            <button class="btn btn-outline-danger ocb-action-btn" id="deleteCourseBtn">
+              <i class="bi bi-trash"></i> Delete
+            </button>
+            <button class="btn btn-primary ocb-action-btn" id="addLessonBtn">
+              <i class="bi bi-plus-lg"></i> Add lesson
+            </button>
+          </div>
+        </div>
+        <p class="text-muted" id="detailDescription"></p>
+        <div class="detail-stats" id="detailStats">
+          <div class="detail-stat detail-stat-total">
+            <div class="detail-stat-icon"><i class="bi bi-collection"></i></div>
+            <div class="detail-stat-body">
+              <div class="detail-stat-value" id="detailStatTotal">0</div>
+              <div class="detail-stat-label">Total lessons</div>
+            </div>
+          </div>
+          <div class="detail-stat detail-stat-done">
+            <div class="detail-stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="detail-stat-body">
+              <div class="detail-stat-value" id="detailStatDone">0</div>
+              <div class="detail-stat-label">Completed</div>
+            </div>
+          </div>
+          <div class="detail-stat detail-stat-remaining">
+            <div class="detail-stat-icon"><i class="bi bi-hourglass-split"></i></div>
+            <div class="detail-stat-body">
+              <div class="detail-stat-value" id="detailStatRemaining">0</div>
+              <div class="detail-stat-label">Remaining</div>
+            </div>
+          </div>
+          <div class="detail-stat detail-stat-progress">
+            <div class="detail-stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="detail-stat-body">
+              <div class="detail-stat-value" id="detailStatPct">0%</div>
+              <div class="detail-stat-label">Progress</div>
+            </div>
+          </div>
+        </div>
+        <div class="detail-progress mb-3" id="detailProgressTrack">
+          <div class="detail-progress-fill" id="detailProgressBar"></div>
+        </div>
+        <div id="lessonsList"></div>
+      </section>
+    </main>
+
+    <!-- Create / Edit Course Modal -->
+    <div class="modal fade" id="courseModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="courseModalTitle">New course</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="courseForm">
+              <div class="mb-3">
+                <label class="form-label">Course title</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="courseTitleInput"
+                  required
+                  maxlength="120"
+                  placeholder="e.g. Learn Web Development"
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Description (optional)</label>
+                <textarea
+                  class="form-control"
+                  id="courseDescInput"
+                  rows="2"
+                  maxlength="500"
+                  placeholder="Short description of what this course covers"
+                ></textarea>
+              </div>
+
+              <hr />
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Lessons <span class="text-muted small">(optional, you can add more later)</span></h6>
+                <button type="button" class="btn btn-sm btn-outline-primary ocb-action-btn" id="addLessonRowBtn">
+                  <i class="bi bi-plus"></i> Add lesson
+                </button>
+              </div>
+              <div id="courseFormLessons"></div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveCourseBtn">Create course</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add / Edit Lesson Modal -->
+    <div class="modal fade" id="lessonModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="lessonModalTitle">Add lesson</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="lessonForm">
+              <div class="mb-3">
+                <label class="form-label">Lesson title</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="lessonTitleInput"
+                  required
+                  maxlength="160"
+                  placeholder="e.g. Introduction to Flexbox"
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Resource</label>
+                <ul class="nav nav-pills nav-sm mb-2" id="resourceTabs">
+                  <li class="nav-item">
+                    <button class="nav-link active" data-tab="link" type="button">Link</button>
+                  </li>
+                  <li class="nav-item">
+                    <button class="nav-link" data-tab="upload" type="button">Upload file</button>
+                  </li>
+                  <li class="nav-item">
+                    <button class="nav-link" data-tab="note" type="button">Text note</button>
+                  </li>
+                  <li class="nav-item">
+                    <button class="nav-link" data-tab="markdown" type="button">Markdown</button>
+                  </li>
+                </ul>
+
+                <div class="tab-pane" data-pane="link">
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="resourceLinkInput"
+                    placeholder="https://youtube.com/watch?v=...  or  C:\Users\you\file.pdf  or  /home/you/notes.txt"
+                  />
+                  <div class="form-text">
+                    YouTube, article, or website links — or paste a <strong>local file path</strong>
+                    (e.g. <code>C:\Users\you\video.mp4</code>) and the file will be imported.
+                  </div>
+                </div>
+
+                <div class="tab-pane d-none" data-pane="upload">
+                  <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Click or drop a file to upload">
+                    <i class="bi bi-cloud-arrow-up drop-zone-icon"></i>
+                    <div class="drop-zone-title">Drop a file here</div>
+                    <div class="drop-zone-sub">or click to browse</div>
+                    <input type="file" class="d-none" id="resourceFileInput" />
+                  </div>
+                  <div class="form-text">PDF, MP3, MP4, PNG, JPG, MD up to 200MB.</div>
+                  <div id="uploadedFileInfo" class="mt-2 small text-muted"></div>
+                </div>
+
+                <div class="tab-pane d-none" data-pane="note">
+                  <textarea
+                    class="form-control"
+                    id="resourceNoteInput"
+                    rows="5"
+                    placeholder="Write your note here..."
+                  ></textarea>
+                </div>
+
+                <div class="tab-pane d-none" data-pane="markdown">
+                  <textarea
+                    class="form-control font-monospace"
+                    id="resourceMarkdownInput"
+                    rows="8"
+                    placeholder="# Heading&#10;&#10;Some **bold** and *italic* text.&#10;&#10;- list item&#10;```js&#10;console.log('code');&#10;```&#10;&#10;[a link](https://example.com)"
+                  ></textarea>
+                  <div class="form-text">
+                    Write GitHub-flavored markdown. Headers, lists, code blocks, links, and images all render in the preview.
+                  </div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Notes (optional)</label>
+                <textarea
+                  class="form-control"
+                  id="lessonNotesInput"
+                  rows="3"
+                  placeholder="Your own thoughts or summary"
+                ></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveLessonBtn">Save lesson</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resource preview modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+      <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="previewTitle">Preview</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-0 bg-dark" id="previewBody" style="min-height: 300px;">
+            <div class="text-center text-white-50 py-5">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm dialog -->
+    <div class="modal fade" id="confirmModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-body">
+            <h5 id="confirmTitle">Are you sure?</h5>
+            <p class="text-muted mb-0" id="confirmMessage"></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirmOkBtn">Confirm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+      <div id="toast" class="toast align-items-center text-bg-dark border-0" role="alert">
+        <div class="d-flex">
+          <div class="toast-body" id="toastBody">Done</div>
+          <button
+            type="button"
+            class="btn-close btn-close-white me-2 m-auto"
+            data-bs-dismiss="toast"
+          ></button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>
