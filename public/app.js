@@ -80,6 +80,7 @@
     previewModalEl: $('#previewModal'),
     previewTitle: $('#previewTitle'),
     previewBody: $('#previewBody'),
+    previewExternalLink: $('#previewExternalLink'),
 
     confirmModalEl: $('#confirmModal'),
     confirmTitle: $('#confirmTitle'),
@@ -1075,11 +1076,32 @@
   }
 
   // ---------- Preview ------------------------------------------------------
+  // Some destinations send `X-Frame-Options: DENY` or
+  // `Content-Security-Policy: frame-ancestors 'none'`, which makes the
+  // browser refuse to render them inside our iframe (e.g. w3schools, GitHub,
+  // Facebook). Browsers don't expose a JS hook for this from a cross-origin
+  // parent, so we can't detect it programmatically. The pragmatic fix is to
+  // always show an "Open in new tab" button in the modal header so the user
+  // has a one-click escape hatch for any external resource.
   function openPreview(lesson) {
     els.previewTitle.textContent = lesson.title;
     const body = els.previewBody;
     const type = lesson.type;
     const resource = lesson.resource || '';
+
+    // "Open in new tab" header link: always reflects the current resource so
+    // users always have a one-click escape hatch, even when the destination
+    // blocks embedding.
+    if (els.previewExternalLink) {
+      const extTypes = new Set(['website', 'article', 'pdf', 'video', 'audio', 'image', 'youtube']);
+      if (resource && extTypes.has(type)) {
+        els.previewExternalLink.setAttribute('href', resource);
+        els.previewExternalLink.classList.remove('d-none');
+      } else {
+        els.previewExternalLink.setAttribute('href', '#');
+        els.previewExternalLink.classList.add('d-none');
+      }
+    }
 
     // Sync-rendered types (text/markdown) skip the loading flash; async/media types
     // show a brief "Loading..." placeholder while the iframe/img loads.
@@ -1113,7 +1135,9 @@
       const md = lesson.notes || resource || '';
       body.innerHTML = `<div class="preview-markdown">${renderMarkdown(md)}</div>`;
     } else {
-      // article / website / unknown
+      // article / website / unknown — the destination may block embedding
+      // via X-Frame-Options / frame-ancestors. The header "Open in new tab"
+      // button above is the user-facing workaround.
       body.innerHTML = `<iframe class="preview-frame" src="${escapeHtml(resource)}" referrerpolicy="no-referrer"></iframe>`;
     }
     bs.previewModal.show();

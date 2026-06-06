@@ -553,6 +553,15 @@ body {
 .preview-markdown th,
 .preview-markdown td  { border: 1px solid #e5e7eb; padding: 0.4em 0.7em; }
 
+/* Preview modal: "Open in new tab" header link */
+#previewModal .modal-header #previewExternalLink {
+  margin-right: 0.5rem;
+  white-space: nowrap;
+}
+#previewModal .modal-header #previewExternalLink i {
+  font-size: 0.9em;
+}
+
 .drop-zone {
   border: 2px dashed var(--ocb-border);
   border-radius: 10px;
