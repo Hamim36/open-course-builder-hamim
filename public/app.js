@@ -692,7 +692,6 @@
         }
         return `
           <div class="lesson-item ${l.isCompleted ? 'completed' : ''}" data-id="${l.id}">
-            <input class="form-check-input lesson-toggle" type="checkbox" ${l.isCompleted ? 'checked' : ''} aria-label="Mark complete" />
             <div class="flex-grow-1">
               <p class="lesson-title ${previewable ? 'lesson-title-clickable' : ''}">${escapeHtml(l.title)}</p>
               <div class="lesson-meta">
@@ -706,6 +705,9 @@
             <div class="lesson-actions">
               <div class="lesson-actions-col lesson-actions-col-view">
                 <button class="btn btn-sm btn-outline-primary open-lesson" title="Open"><i class="bi bi-box-arrow-up-right"></i> Open</button>
+                <button class="btn btn-sm ${l.isCompleted ? 'btn-success' : 'btn-outline-success'} mark-complete" title="${l.isCompleted ? 'Marked complete' : 'Mark complete'}">
+                  <i class="bi ${l.isCompleted ? 'bi-check-circle-fill' : 'bi-check-circle'}"></i> ${l.isCompleted ? 'Marked complete' : 'Mark complete'}
+                </button>
               </div>
               <div class="lesson-actions-col lesson-actions-col-edit ocb-action-btn">
                 <button class="btn btn-sm btn-outline-secondary edit-lesson ocb-action-btn" title="Edit"><i class="bi bi-pencil"></i></button>
@@ -724,7 +726,10 @@
     els.lessonsList.querySelectorAll('.lesson-item').forEach((row) => {
       const id = row.dataset.id;
       const lesson = course.lessons.find((x) => x.id === id);
-      row.querySelector('.lesson-toggle').addEventListener('change', () => toggleLesson(id));
+      row.querySelector('.mark-complete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleLesson(id);
+      });
       row.querySelector('.edit-lesson').addEventListener('click', (e) => {
         e.stopPropagation();
         openLessonModal(id);
