@@ -76,6 +76,11 @@
     resourceMarkdownInput: $('#resourceMarkdownInput'),
     lessonNotesInput: $('#lessonNotesInput'),
     saveLessonBtn: $('#saveLessonBtn'),
+    viewNoteBtn: $('#viewNoteBtn'),
+
+    notePreviewModalEl: $('#notePreviewModal'),
+    notePreviewTitle: $('#notePreviewTitle'),
+    notePreviewBody: $('#notePreviewBody'),
 
     previewModalEl: $('#previewModal'),
     previewTitle: $('#previewTitle'),
@@ -96,6 +101,7 @@
     lessonModal: new bootstrap.Modal(els.lessonModalEl),
     previewModal: new bootstrap.Modal(els.previewModalEl),
     confirmModal: new bootstrap.Modal(els.confirmModalEl),
+    notePreviewModal: els.notePreviewModalEl ? new bootstrap.Modal(els.notePreviewModalEl) : null,
     toast: new bootstrap.Toast(els.toastEl, { delay: 2500 }),
   };
 
@@ -899,6 +905,16 @@
     state.lessonUploaded = null;
     state.lessonEditingId = null;
     activateResourceTab('link');
+    if (els.viewNoteBtn) els.viewNoteBtn.disabled = true;
+  }
+
+  // The notes textarea can hold long text that's mostly hidden behind the
+  // small row count. Keep the "View note" button in sync with whether there's
+  // anything to view.
+  function syncViewNoteBtn() {
+    if (!els.viewNoteBtn) return;
+    const hasText = (els.lessonNotesInput.value || '').trim().length > 0;
+    els.viewNoteBtn.disabled = !hasText;
   }
 
   function activateResourceTab(name) {
@@ -918,6 +934,7 @@
       state.lessonEditingId = lessonId;
       els.lessonTitleInput.value = lesson.title;
       els.lessonNotesInput.value = lesson.notes || '';
+      syncViewNoteBtn();
 
       if (['youtube', 'article', 'website'].includes(lesson.type) && /^https?:\/\//i.test(lesson.resource || '')) {
         els.resourceLinkInput.value = lesson.resource;
@@ -1226,7 +1243,7 @@
         } catch (_) { /* ignore */ }
       });
     }
-    ['previewModalEl', 'lessonModalEl', 'courseModalEl'].forEach((key) => {
+    ['previewModalEl', 'lessonModalEl', 'courseModalEl', 'notePreviewModalEl'].forEach((key) => {
       const el = els[key];
       if (!el) return;
       el.addEventListener('hidden.bs.modal', () => stopModalMedia(el));
@@ -1277,6 +1294,21 @@
 
     els.saveCourseBtn.addEventListener('click', saveCourseFromModal);
     els.saveLessonBtn.addEventListener('click', saveLessonFromModal);
+
+    // View note button — opens the full note in a modal so long notes
+    // aren't hidden behind the 3-row textarea.
+    if (els.lessonNotesInput && els.viewNoteBtn) {
+      els.lessonNotesInput.addEventListener('input', syncViewNoteBtn);
+      els.viewNoteBtn.addEventListener('click', () => {
+        if (els.viewNoteBtn.disabled) return;
+        const text = (els.lessonNotesInput.value || '').trim();
+        if (!text) return;
+        const titleEl = els.lessonTitleInput.value.trim() || 'Note';
+        els.notePreviewTitle.textContent = `Note — ${titleEl}`;
+        els.notePreviewBody.textContent = text;
+        bs.notePreviewModal.show();
+      });
+    }
 
     // Resource tabs
     $$('#resourceTabs .nav-link').forEach((btn) => {
