@@ -35,6 +35,8 @@
     streaksActiveDays: $('#streaksActiveDays'),
     streaksMonths: $('#streaksMonths'),
     streaksGrid: $('#streaksGrid'),
+    streaksMonthSel: $('#streaksMonthSel'),
+    streaksYearSel: $('#streaksYearSel'),
 
     detailView: $('#courseDetailView'),
     detailTitle: $('#detailTitle'),
@@ -255,15 +257,17 @@
   }
 
   // ---------- Streaks (heatmap from lesson completeDate) ------------------
-  // Renders a GitHub-style 12-month contribution heatmap inside the navbar
-  // dropdown. The grid is built column-by-column (one column = one week)
-  // starting from the Sunday at or before 12 months ago, ending at today's
-  // column. Each cell is a day; intensity is bucketed from the count of
-  // lessons completed that day. Streaks (current + longest) are computed
-  // from the same set of active days.
-  const STREAKS_WEEKS = 53; // ~12 months incl. the current partial week
+  // Renders a single-month calendar (Sun..Sat columns, 5/6 rows) inside the
+  // navbar dropdown. The user can pick any year/month that has completion
+  // data, plus the current month. Intensity is bucketed from the count of
+  // lessons completed on each day. All-time stats (current streak, longest
+  // streak, total completions, active days) are computed once from the full
+  // set of completion data and shown above the calendar.
   const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  // Currently displayed year/month. Defaults to the current month on first
+  // render and is preserved across live-refreshes.
+  const streaksView = { year: 0, month: 0, initialized: false };
 
   // Return YYYY-MM-DD in the user's local timezone for a Date instance.
   function dayKey(d) {
@@ -353,69 +357,101 @@
     if (els.streaksTotal) els.streaksTotal.textContent = total;
     if (els.streaksActiveDays) els.streaksActiveDays.textContent = activeDays;
 
-    // Anchor: Sunday at or before (today - STREAKS_WEEKS weeks).
+    // Build the list of (year, month) buckets that have at least one
+    // completion, plus the current month as the default landing spot.
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const endCol = new Date(today);
-    const start = new Date(endCol);
-    start.setDate(start.getDate() - (STREAKS_WEEKS - 1) * 7);
-    // Walk back to Sunday.
-    start.setDate(start.getDate() - start.getDay());
+    const buckets = new Set();
+    for (const k of counts.keys()) {
+      const d = new Date(k + 'T00:00:00');
+      buckets.add(d.getFullYear() * 12 + d.getMonth());
+    }
+    const currentBucket = today.getFullYear() * 12 + today.getMonth();
+    buckets.add(currentBucket);
+    const sorted = Array.from(buckets).sort((a, b) => a - b);
+    const yearsSet = new Set();
+    for (const b of sorted) yearsSet.add(Math.floor(b / 12));
 
-    // Build cells column-by-column. Each column has 7 cells (Sun..Sat).
-    // `cells[col][row]` = { date, count, intensity }.
+    // Default the view to the current month on first render, then keep it.
+    if (!streaksView.initialized) {
+      streaksView.year = today.getFullYear();
+      streaksView.month = today.getMonth();
+      streaksView.initialized = true;
+    }
+
+    // Populate year + month selects based on the available buckets.
+    const yearSel = els.streaksYearSel;
+    const monthSel = els.streaksMonthSel;
+    if (yearSel) {
+      const sortedYears = Array.from(yearsSet).sort((a, b) => b - a); // newest first
+      // Preserve focus/selection if possible.
+      const focusYear = streaksView.year || sortedYears[0];
+      if (yearSel.options.length !== sortedYears.length) {
+        yearSel.innerHTML = sortedYears
+          .map(y => `<option value="${y}">${y}</option>`).join('');
+      }
+      yearSel.value = String(focusYear);
+      streaksView.year = Number(yearSel.value);
+    }
+    if (monthSel) {
+      // Months available for the currently selected year, ordered Jan..Dec.
+      const monthsForYear = sorted
+        .filter(b => Math.floor(b / 12) === streaksView.year)
+        .map(b => b % 12);
+      if (monthSel.options.length !== monthsForYear.length) {
+        monthSel.innerHTML = monthsForYear.length
+          ? monthsForYear
+              .map(m => `<option value="${m}">${MONTH_LABELS[m]}</option>`)
+              .join('')
+          : `<option value="${streaksView.month}">${MONTH_LABELS[streaksView.month]}</option>`;
+      }
+      // If the selected month isn't available in this year, snap to the
+      // closest one (prefer the current month, else the first available).
+      const available = new Set(monthsForYear);
+      if (!available.has(streaksView.month)) {
+        streaksView.month = available.has(today.getMonth()) && today.getFullYear() === streaksView.year
+          ? today.getMonth()
+          : monthsForYear[monthsForYear.length - 1] ?? 0;
+      }
+      monthSel.value = String(streaksView.month);
+    }
+
+    // Build the calendar grid for streaksView.year / streaksView.month.
+    const firstOfMonth = new Date(streaksView.year, streaksView.month, 1);
+    const daysInMonth = new Date(streaksView.year, streaksView.month + 1, 0).getDate();
+    const startWeekday = firstOfMonth.getDay(); // 0 = Sun
     const cells = [];
-    const monthLabels = []; // [{ col, label }]
-    let lastMonth = -1;
-    for (let c = 0; c < STREAKS_WEEKS; c++) {
-      const col = [];
-      for (let r = 0; r < 7; r++) {
-        const d = new Date(start);
-        d.setDate(d.getDate() + c * 7 + r);
-        if (d > endCol) {
-          col.push(null);
-          continue;
-        }
-        const k = dayKey(d);
-        const count = counts.get(k) || 0;
-        col.push({ date: d, key: k, count, intensity: intensityFor(count, max) });
-        if (r === 0 && d.getMonth() !== lastMonth) {
-          monthLabels.push({ col: c, label: MONTH_LABELS[d.getMonth()] });
-          lastMonth = d.getMonth();
-        }
-      }
-      cells.push(col);
+    // Leading blanks so the 1st lands under the correct weekday column.
+    for (let i = 0; i < startWeekday; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(streaksView.year, streaksView.month, d);
+      const k = dayKey(date);
+      const count = counts.get(k) || 0;
+      cells.push({
+        date,
+        key: k,
+        day: d,
+        count,
+        intensity: intensityFor(count, max),
+        isToday: k === dayKey(today),
+        isFuture: date > today,
+      });
     }
+    // Trailing blanks to fill the last week row.
+    while (cells.length % 7 !== 0) cells.push(null);
 
-    // Render month labels using a 53-column grid so they line up with weeks.
-    if (els.streaksMonths) {
-      const cellsPerCol = els.streaksMonths.children.length
-        ? Array.from(els.streaksMonths.children).map(() => null)
-        : [];
-      // Rebuild from scratch each render — fast (53 nodes).
-      let html = '';
-      for (let c = 0; c < STREAKS_WEEKS; c++) html += '<span></span>';
-      els.streaksMonths.innerHTML = html;
-      const spans = els.streaksMonths.children;
-      for (const m of monthLabels) {
-        if (spans[m.col]) spans[m.col].textContent = m.label;
-      }
-    }
-
-    // Render the grid.
     let html = '';
-    for (let c = 0; c < cells.length; c++) {
-      html += '<div class="streaks-col">';
-      for (let r = 0; r < 7; r++) {
-        const cell = cells[c][r];
-        if (!cell) {
-          html += '<span class="streaks-cell empty"></span>';
-          continue;
-        }
-        const title = `${cell.count} lesson${cell.count === 1 ? '' : 's'} on ${cell.key}`;
-        html += `<span class="streaks-cell lvl-${cell.intensity}" title="${escapeHtml(title)}" data-key="${cell.key}"></span>`;
+    for (const cell of cells) {
+      if (!cell) {
+        html += '<span class="streaks-cell empty"></span>';
+        continue;
       }
-      html += '</div>';
+      const classes = ['streaks-cell', `lvl-${cell.intensity}`];
+      if (cell.isToday) classes.push('today');
+      if (cell.isFuture) classes.push('future');
+      const title = cell.count
+        ? `${cell.count} lesson${cell.count === 1 ? '' : 's'} on ${cell.key}`
+        : `No lessons on ${cell.key}`;
+      html += `<span class="${classes.join(' ')}" title="${escapeHtml(title)}" data-key="${cell.key}"><span class="streaks-day">${cell.day}</span></span>`;
     }
     els.streaksGrid.innerHTML = html;
   }
@@ -1090,6 +1126,20 @@
     if (els.syncProgressBtn) els.syncProgressBtn.addEventListener('click', syncProgress);
     if (els.streaksBtn) els.streaksBtn.addEventListener('click', toggleStreaks);
     if (els.streaksCloseBtn) els.streaksCloseBtn.addEventListener('click', closeStreaks);
+    if (els.streaksMonthSel) {
+      els.streaksMonthSel.addEventListener('change', () => {
+        streaksView.month = Number(els.streaksMonthSel.value);
+        renderStreaks();
+      });
+    }
+    if (els.streaksYearSel) {
+      els.streaksYearSel.addEventListener('change', () => {
+        streaksView.year = Number(els.streaksYearSel.value);
+        // Clear month so renderStreaks() can snap to the closest valid one.
+        streaksView.month = -1;
+        renderStreaks();
+      });
+    }
     // Click anywhere outside the panel closes it.
     document.addEventListener('click', (e) => {
       if (!els.streaksPanel || els.streaksPanel.classList.contains('d-none')) return;

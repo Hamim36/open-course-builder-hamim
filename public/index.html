@@ -81,14 +81,22 @@
                 </div>
               </div>
               <div class="streaks-heatmap-wrap">
-                <div class="streaks-months" id="streaksMonths"></div>
-                <div class="streaks-grid-row">
-                  <div class="streaks-dow">
-                    <span></span><span>Mon</span><span></span>
-                    <span>Wed</span><span></span>
-                    <span>Fri</span><span></span>
+                <div class="streaks-controls">
+                  <div class="streaks-controls-group">
+                    <label class="streaks-control-label" for="streaksMonthSel">Month</label>
+                    <select id="streaksMonthSel" class="form-select form-select-sm streaks-select"></select>
                   </div>
-                  <div class="streaks-grid" id="streaksGrid"></div>
+                  <div class="streaks-controls-group">
+                    <label class="streaks-control-label" for="streaksYearSel">Year</label>
+                    <select id="streaksYearSel" class="form-select form-select-sm streaks-select"></select>
+                  </div>
+                </div>
+                <div class="streaks-month-view">
+                  <div class="streaks-month-dow">
+                    <span>Sun</span><span>Mon</span><span>Tue</span>
+                    <span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                  </div>
+                  <div class="streaks-month-grid" id="streaksGrid"></div>
                 </div>
                 <div class="streaks-legend">
                   <span class="text-muted small">Less</span>

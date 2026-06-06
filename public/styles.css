@@ -647,7 +647,7 @@ body.hidden-actions .course-card-head-actions {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: min(720px, calc(100vw - 1rem));
+  width: min(420px, calc(100vw - 1rem));
   background: #fff;
   border: 1px solid var(--ocb-border);
   border-radius: var(--ocb-radius);
@@ -693,61 +693,92 @@ body.hidden-actions .course-card-head-actions {
 .streaks-heatmap-wrap {
   border-top: 1px solid var(--ocb-border);
   padding-top: 0.75rem;
-  overflow-x: auto;
 }
-.streaks-months {
-  display: grid;
-  grid-template-columns: repeat(53, 1fr);
-  column-gap: 3px;
-  font-size: 0.7rem;
-  color: var(--ocb-muted);
-  padding-left: 26px; /* aligns with the dow gutter */
-  margin-bottom: 4px;
-  min-width: 53px;
-}
-.streaks-months span {
-  white-space: nowrap;
-  overflow: visible;
-}
-.streaks-grid-row {
+.streaks-controls {
   display: flex;
-  gap: 6px;
-  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
 }
-.streaks-dow {
+.streaks-controls-group {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.streaks-control-label {
+  font-size: 0.75rem;
+  color: var(--ocb-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+  white-space: nowrap;
+}
+.streaks-select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.streaks-month-view {
+  /* 7 columns (Sun..Sat) of day cells, rows laid out by the grid. */
+  border: 1px solid var(--ocb-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.streaks-month-dow {
   display: grid;
-  grid-template-rows: repeat(7, 1fr);
-  row-gap: 3px;
+  grid-template-columns: repeat(7, 1fr);
+  background: #f9fafb;
+  border-bottom: 1px solid var(--ocb-border);
   font-size: 0.7rem;
   color: var(--ocb-muted);
-  width: 22px;
-  flex: 0 0 22px;
+  text-align: center;
+  padding: 0.3rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
-.streaks-dow span {
-  height: 11px;
-  line-height: 11px;
+.streaks-month-dow span {
+  padding: 0 2px;
 }
-.streaks-grid {
+.streaks-month-grid {
   display: grid;
-  grid-auto-flow: column;
-  grid-template-rows: repeat(7, 1fr);
-  row-gap: 3px;
-  column-gap: 3px;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding: 2px;
+  background: var(--ocb-border);
 }
-.streaks-col {
-  display: grid;
-  grid-template-rows: repeat(7, 1fr);
-  row-gap: 3px;
+.streaks-month-grid > .streaks-cell {
+  width: auto;
+  height: 38px;
+  border-radius: 4px;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 3px 5px;
+  font-size: 0.72rem;
+  color: #1f2937;
+  font-variant-numeric: tabular-nums;
 }
-.streaks-cell {
-  width: 11px;
-  height: 11px;
-  border-radius: 2px;
+.streaks-month-grid > .streaks-cell.empty {
+  background: #fff;
+}
+.streaks-month-grid > .streaks-cell.lvl-0 {
   background: #ebedf0;
-  display: inline-block;
+  color: #6b7280;
 }
-.streaks-cell.empty {
-  background: transparent;
+.streaks-month-grid > .streaks-cell.lvl-1 { color: #1f2937; }
+.streaks-month-grid > .streaks-cell.lvl-2,
+.streaks-month-grid > .streaks-cell.lvl-3,
+.streaks-month-grid > .streaks-cell.lvl-4 { color: #fff; }
+.streaks-month-grid > .streaks-cell.today {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+  z-index: 1;
+}
+.streaks-month-grid > .streaks-cell.future {
+  opacity: 0.45;
+}
+.streaks-day {
+  line-height: 1;
 }
 /* Green intensity ramp (GitHub-style) */
 .streaks-cell.lvl-1 { background: #c6e48b; }
@@ -766,6 +797,12 @@ body.hidden-actions .course-card-head-actions {
   justify-content: flex-end;
   margin-top: 0.6rem;
   font-size: 0.72rem;
+}
+.streaks-legend .streaks-cell {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  display: inline-block;
 }
 
 @media (max-width: 575.98px) {
