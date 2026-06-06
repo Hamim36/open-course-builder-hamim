@@ -1,90 +1,81 @@
 {
   "courses": [
     {
-      "id": "14e6bf87-a3e8-4015-ab64-290dab55300f",
-      "title": "web dev",
-      "description": "jello",
-      "createdAt": "2026-06-06T09:19:24.420Z",
-      "updatedAt": "2026-06-06T18:15:03.334Z",
+      "id": "5446e45a-8177-4c3c-a8c3-70105ce8bad5",
+      "title": "frontend",
+      "description": "1 month frontend learning challange",
+      "createdAt": "2026-06-06T18:51:00.082Z",
+      "updatedAt": "2026-06-06T19:04:37.316Z",
       "lessons": [
         {
-          "id": "36d01516-9aa2-4478-baca-54b8cbd4d3fc",
-          "title": "task",
+          "id": "cc217eba-f2f0-443f-a20d-9ba742581e14",
+          "title": "html for beginner",
+          "type": "youtube",
+          "resource": "https://www.youtube.com/watch?v=ok-plXXHlWw",
+          "notes": "basic notes for html ",
+          "isCompleted": false,
+          "completeDate": null,
+          "createdAt": "2026-06-06T18:53:54.883Z"
+        },
+        {
+          "id": "3e229e19-d91d-4c08-a9d1-ba3f8ecba239",
+          "title": "css",
+          "type": "website",
+          "resource": "https://www.w3schools.com/css/",
+          "notes": "",
+          "isCompleted": false,
+          "completeDate": null,
+          "createdAt": "2026-06-06T18:55:09.283Z"
+        },
+        {
+          "id": "625aa395-c210-42f8-9c39-1fae3d92d406",
+          "title": "bootstrap",
+          "type": "image",
+          "resource": "/uploads/1780772417497-91cc3b0f-pexels-harry-shum-17627821-6504525.jpg",
+          "notes": "",
+          "isCompleted": false,
+          "completeDate": null,
+          "createdAt": "2026-06-06T19:00:18.780Z"
+        },
+        {
+          "id": "d3d2f7bd-3bc6-471a-bc06-b666d1346850",
+          "title": "node",
+          "type": "pdf",
+          "resource": "/uploads/1780772376194-13ec4dc2-2504.19874v1.pdf",
+          "notes": "offline pdf",
+          "isCompleted": false,
+          "completeDate": null,
+          "createdAt": "2026-06-06T18:59:40.900Z"
+        },
+        {
+          "id": "6b0587a0-747d-4999-bd9a-edf36bb5e93e",
+          "title": "js",
+          "type": "video",
+          "resource": "/uploads/1780772131316-ed6ab388-PinkPantheress_Stateside___Zara_Larsson_Lyrics__Color_Coded_Lyrics_.mp4",
+          "notes": "offline video file",
+          "isCompleted": false,
+          "completeDate": null,
+          "createdAt": "2026-06-06T18:55:50.687Z"
+        },
+        {
+          "id": "5cc50260-e54c-4de6-bedb-2ff328b1ea5e",
+          "title": "task 2",
           "type": "markdown",
           "resource": "",
-          "notes": "# Open Course Builder\n\nA simple CRUD app that collects every kind of learning resource for a course in one place: YouTube links, articles, website URLs, PDFs, audio, video, images, and plain text notes. Backed by a single `db.json` file and a tiny Node/Express server.\n\n## Stack\n- **Frontend:** HTML, Bootstrap 5, vanilla JS (no build step).\n- **Backend:** Node + Express, `multer` for file uploads, `uuid` for IDs.\n- **Storage:** `db.json` (auto-created) + `uploads/` directory for uploaded files.\n\n## Run\n```bash\nnpm install\nnpm start\n```\nThen open http://localhost:3000\n\n## Project layout\n```\nopen-course-builder/\n├── server.js        # Express API + static server\n├── package.json\n├── db.json          # JSON database (auto-created)\n├── public/          # Static frontend\n│   ├── index.html\n│   ├── app.js\n│   └── styles.css\n└── uploads/         # Uploaded files land here\n```\n\n## API\n- `GET    /api/courses` — list courses\n- `POST   /api/courses` — create a course (with optional `lessons[]`)\n- `GET    /api/courses/:id` — get one course\n- `PUT    /api/courses/:id` — update title/description\n- `DELETE /api/courses/:id` — delete a course\n- `POST   /api/courses/:id/lessons` — add a lesson\n- `PUT    /api/courses/:id/lessons/:lessonId` — update a lesson\n- `PATCH  /api/courses/:id/lessons/:lessonId/toggle` — toggle `isCompleted`\n- `DELETE /api/courses/:id/lessons/:lessonId` — delete a lesson\n- `POST   /api/upload` (multipart `file`) — returns `{ name, path, size, mimetype }`\n\n## Lesson shape\n```json\n{\n  \"id\": \"uuid\",\n  \"title\": \"Flexbox basics\",\n  \"type\": \"youtube | article | website | pdf | audio | video | image | text\",\n  \"resource\": \"https://... or /uploads/file.pdf or ''\",\n  \"notes\": \"free-form notes\",\n  \"isCompleted\": false,\n  \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n}\n```\n\nResource type is auto-detected from the URL/extension. You can override it explicitly.\n",
-          "isCompleted": true,
-          "completeDate": "2026-06-06T09:35:50.000Z",
-          "createdAt": "2026-06-06T09:20:10.928Z"
-        },
-        {
-          "id": "e2400c84-885b-407d-845a-a295cd70ac31",
-          "title": "pdf",
-          "type": "pdf",
-          "resource": "/uploads/1780737646214-b329b514-2504.19874v1.pdf",
-          "notes": "hello",
-          "isCompleted": true,
-          "completeDate": "2026-06-06T09:35:50.000Z",
-          "createdAt": "2026-06-06T09:20:50.845Z"
-        },
-        {
-          "id": "3918b72d-8562-44d9-80f0-103379d88f5b",
-          "title": "website",
-          "type": "website",
-          "resource": "https://www.w3schools.com/html/",
-          "notes": "web site link",
-          "isCompleted": true,
-          "completeDate": "2026-06-06T11:28:17.782Z",
-          "createdAt": "2026-06-06T09:27:05.166Z"
-        },
-        {
-          "id": "033301a5-5eba-474a-81aa-32dfaa06973a",
-          "title": "yt",
-          "type": "youtube",
-          "resource": "https://www.youtube.com/watch?v=1iDrQta26zo&list=RD1iDrQta26zo&start_radio=1",
-          "notes": "link",
-          "isCompleted": true,
-          "completeDate": "2026-06-06T18:14:50.630Z",
-          "createdAt": "2026-06-06T17:02:30.229Z"
-        },
-        {
-          "id": "beed2ae5-f5e2-4004-97df-a64293f43670",
-          "title": "site test",
-          "type": "website",
-          "resource": "https://en.wikipedia.org/wiki/Computer",
-          "notes": "test",
-          "isCompleted": true,
-          "completeDate": "2026-06-06T18:14:58.331Z",
-          "createdAt": "2026-06-06T17:11:07.958Z"
-        },
-        {
-          "id": "2213a5d2-c5ae-4c08-876a-27a0a7081fc9",
-          "title": "chatbot",
-          "type": "website",
-          "resource": "https://chatgpt.com/",
-          "notes": "test chatgpt",
+          "notes": "# Open Course Builder\n\nA simple CRUD app that collects every kind of learning resource for a course in one place: YouTube links, articles, website URLs, PDFs, audio, video, images, and plain text notes. Backed by a single `db.json` file and a tiny Node/Express server.\n\n## Stack\n- **Frontend:** HTML, Bootstrap 5, vanilla JS (no build step).\n- **Backend:** Node + Express, `multer` for file uploads, `uuid` for IDs.\n- **Storage:** `db.json` (auto-created) + `uploads/` directory for uploaded files.\n\n## Run\n```bash\nnpm install\nnpm start\n```\nThen open http://localhost:3000\n\n## Project layout\n```\nopen-course-builder/\n├── server.js        # Express API + static server\n├── package.json\n├── db.json          # JSON database (auto-created)\n├── public/          # Static frontend\n│   ├── index.html\n│   ├── app.js\n│   └── styles.css\n└── uploads/         # Uploaded files land here\n```\n\n## API\n- `GET    /api/courses` — list courses\n- `POST   /api/courses` — create a course (with optional `lessons[]`)\n- `GET    /api/courses/:id` — get one course\n- `PUT    /api/courses/:id` — update title/description\n- `DELETE /api/courses/:id` — delete a course\n- `POST   /api/courses/:id/lessons` — add a lesson\n- `PUT    /api/courses/:id/lessons/:lessonId` — update a lesson\n- `PATCH  /api/courses/:id/lessons/:lessonId/toggle` — toggle `isCompleted`\n- `DELETE /api/courses/:id/lessons/:lessonId` — delete a lesson\n- `POST   /api/upload` (multipart `file`) — returns `{ name, path, size, mimetype }`\n\n## Lesson shape\n```json\n{\n  \"id\": \"uuid\",\n  \"title\": \"Flexbox basics\",\n  \"type\": \"youtube | article | website | pdf | audio | video | image | text\",\n  \"resource\": \"https://... or /uploads/file.pdf or ''\",\n  \"notes\": \"free-form notes\",\n  \"isCompleted\": false,\n  \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n}\n```\n\nResource type is auto-detected from the URL/extension. You can override it explicitly.",
           "isCompleted": false,
           "completeDate": null,
-          "createdAt": "2026-06-06T17:11:55.631Z"
-        }
-      ]
-    },
-    {
-      "id": "1ccb82ce-a2a7-4ac4-8d7a-d3833b0010ad",
-      "title": "mobile dev",
-      "description": "android and ios development course plan",
-      "createdAt": "2026-06-06T18:17:07.403Z",
-      "updatedAt": "2026-06-06T18:38:29.330Z",
-      "lessons": [
+          "createdAt": "2026-06-06T19:03:19.138Z"
+        },
         {
-          "id": "fc69497e-6734-4676-95e6-2ac16b9d43a3",
-          "title": "intro to mobile dev",
+          "id": "6b18872e-8f44-46fd-ab98-f13af746a854",
+          "title": "task 1",
           "type": "text",
           "resource": "",
-          "notes": "hello mobile devs",
+          "notes": "Examples in Each Chapter\n\nThis CSS tutorial contains over 700 CSS examples.\n\nWith our online editor, you can edit the CSS, and click on a button to view the result.\nCSS Example\nbody {\n  background-color: lightblue;\n}\n\nh1 {\n  color: white;\n  text-align: center;\n}\n\np {\n  font-family: verdana;\n  font-size: 20px;\n}\n\nClick on the \"Try it Yourself\" button to see how it works.\nCSS Examples\n\nLearn from over 700 examples! With our editor, you can edit the CSS, and click on a button to view the result.\n\nUse the Menu\n\nWe recommend reading this tutorial, in the sequence listed in the menu.\n\nIf you have a large screen, the menu will always be present on the left.\n\nIf you have a small screen, open the menu by clicking the top menu sign ☰.\nCSS Templates\n\nWe have created some responsive W3.CSS templates for you to use.\n\nYou are free to modify, save, share, and use them in all your projects.\n\nFree CSS Templates!\n\nCSS Exercises",
           "isCompleted": false,
           "completeDate": null,
-          "createdAt": "2026-06-06T18:17:37.198Z"
+          "createdAt": "2026-06-06T19:00:54.019Z"
         }
       ]
     }
