@@ -1210,6 +1210,28 @@
 
   // ---------- Event wiring -------------------------------------------------
   function wireEvents() {
+    // Stop any playing <video> / <audio> inside a modal as soon as it starts
+    // closing. Without this, dismissing the preview modal (close button,
+    // backdrop click, or Escape) leaves the media element in the DOM and the
+    // audio/video keeps playing in the background.
+    function stopModalMedia(modalEl) {
+      if (!modalEl) return;
+      modalEl.querySelectorAll('video, audio').forEach((m) => {
+        try {
+          m.pause();
+          // Detaching the src and forcing a load releases the underlying
+          // media stream — `pause()` alone is not enough in all browsers.
+          m.removeAttribute('src');
+          if (typeof m.load === 'function') m.load();
+        } catch (_) { /* ignore */ }
+      });
+    }
+    ['previewModalEl', 'lessonModalEl', 'courseModalEl'].forEach((key) => {
+      const el = els[key];
+      if (!el) return;
+      el.addEventListener('hidden.bs.modal', () => stopModalMedia(el));
+    });
+
     els.newCourseBtn.addEventListener('click', openCourseCreateModal);
     els.toggleActionsBtn.addEventListener('click', toggleViewMode);
     if (els.syncProgressBtn) els.syncProgressBtn.addEventListener('click', syncProgress);
