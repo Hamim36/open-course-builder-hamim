@@ -24,6 +24,7 @@
     emptyState: $('#emptyState'),
     emptyCreateBtn: $('#emptyCreateBtn'),
     newCourseBtn: $('#newCourseBtn'),
+    importCourseBtn: $('#importCourseBtn'),
     toggleActionsBtn: $('#toggleActionsBtn'),
     syncProgressBtn: $('#syncProgressBtn'),
     streaksBtn: $('#streaksBtn'),
@@ -52,6 +53,7 @@
     backToCourses: $('#backToCourses'),
     editCourseBtn: $('#editCourseBtn'),
     deleteCourseBtn: $('#deleteCourseBtn'),
+    exportCourseBtn: $('#exportCourseBtn'),
     addLessonBtn: $('#addLessonBtn'),
 
     courseModalEl: $('#courseModal'),
@@ -76,11 +78,6 @@
     resourceMarkdownInput: $('#resourceMarkdownInput'),
     lessonNotesInput: $('#lessonNotesInput'),
     saveLessonBtn: $('#saveLessonBtn'),
-    viewNoteBtn: $('#viewNoteBtn'),
-
-    notePreviewModalEl: $('#notePreviewModal'),
-    notePreviewTitle: $('#notePreviewTitle'),
-    notePreviewBody: $('#notePreviewBody'),
 
     previewModalEl: $('#previewModal'),
     previewTitle: $('#previewTitle'),
@@ -92,6 +89,12 @@
     confirmMessage: $('#confirmMessage'),
     confirmOkBtn: $('#confirmOkBtn'),
 
+    importModalEl: $('#importCourseModal'),
+    importFileInput: $('#importCourseFile'),
+    importJsonInput: $('#importCourseJson'),
+    importError: $('#importCourseError'),
+    importSubmitBtn: $('#importCourseSubmit'),
+
     toastEl: $('#toast'),
     toastBody: $('#toastBody'),
   };
@@ -101,7 +104,7 @@
     lessonModal: new bootstrap.Modal(els.lessonModalEl),
     previewModal: new bootstrap.Modal(els.previewModalEl),
     confirmModal: new bootstrap.Modal(els.confirmModalEl),
-    notePreviewModal: els.notePreviewModalEl ? new bootstrap.Modal(els.notePreviewModalEl) : null,
+    importModal: els.importModalEl ? new bootstrap.Modal(els.importModalEl) : null,
     toast: new bootstrap.Toast(els.toastEl, { delay: 2500 }),
   };
 
@@ -809,6 +812,93 @@
     bs.courseModal.show();
   }
 
+  function openImportModal() {
+    if (!els.importFileInput) return;
+    resetImportForm();
+    bs.importModal.show();
+  }
+
+  function resetImportForm() {
+    if (els.importFileInput) els.importFileInput.value = '';
+    if (els.importJsonInput) els.importJsonInput.value = '';
+    if (els.importError) {
+      els.importError.textContent = '';
+      els.importError.classList.add('d-none');
+    }
+    if (els.importSubmitBtn) els.importSubmitBtn.disabled = false;
+  }
+
+  async function readImportFile(file) {
+    if (!file) return '';
+    if (!file.name.toLowerCase().endsWith('.json') && file.type && !file.type.includes('json')) {
+      throw new Error('Please pick a .json file');
+    }
+    const text = await file.text();
+    return text;
+  }
+
+  function showImportError(message) {
+    if (!els.importError) return;
+    els.importError.textContent = message;
+    els.importError.classList.remove('d-none');
+  }
+
+  async function submitImportCourse() {
+    if (els.importError) els.importError.classList.add('d-none');
+    let raw = (els.importJsonInput && els.importJsonInput.value || '').trim();
+    if (!raw && els.importFileInput && els.importFileInput.files && els.importFileInput.files[0]) {
+      try {
+        raw = (await readImportFile(els.importFileInput.files[0])).trim();
+      } catch (err) {
+        showImportError(err.message || 'Could not read file');
+        return;
+      }
+    }
+    if (!raw) {
+      showImportError('Pick a .json file or paste a course JSON, then try again.');
+      return;
+    }
+    let payload;
+    try {
+      payload = JSON.parse(raw);
+    } catch (err) {
+      showImportError('That JSON is not valid: ' + err.message);
+      return;
+    }
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      showImportError('A course must be a single JSON object.');
+      return;
+    }
+    if (els.importSubmitBtn) els.importSubmitBtn.disabled = true;
+    try {
+      const course = await api('POST', '/api/courses/import', payload);
+      toast('Course imported');
+      bs.importModal.hide();
+      await loadCourses();
+      // Open the freshly imported course so the user lands on it.
+      if (course && course.id) {
+        await openCourseById(course.id);
+      }
+    } catch (err) {
+      showImportError(err.message || 'Import failed');
+    } finally {
+      if (els.importSubmitBtn) els.importSubmitBtn.disabled = false;
+    }
+  }
+
+  async function openCourseById(id) {
+    // Make sure the detail view is on-screen and shows the right course.
+    try {
+      const course = state.courses.find((c) => c.id === id) || (await api('GET', `/api/courses/${id}`));
+      state.activeCourseId = id;
+      renderCourseDetail(course);
+      els.coursesView && els.coursesView.classList.add('d-none');
+      els.detailView && els.detailView.classList.remove('d-none');
+    } catch (err) {
+      toast('Could not open imported course: ' + err.message);
+    }
+  }
+
   function renderCourseFormLessons() {
     if (!state.courseDraftLessons.length) {
       els.courseFormLessons.innerHTML = `<div class="text-muted small">No lessons added. You can add them now or later.</div>`;
@@ -905,21 +995,17 @@
     state.lessonUploaded = null;
     state.lessonEditingId = null;
     activateResourceTab('link');
-    if (els.viewNoteBtn) els.viewNoteBtn.disabled = true;
-  }
-
-  // The notes textarea can hold long text that's mostly hidden behind the
-  // small row count. Keep the "View note" button in sync with whether there's
-  // anything to view.
-  function syncViewNoteBtn() {
-    if (!els.viewNoteBtn) return;
-    const hasText = (els.lessonNotesInput.value || '').trim().length > 0;
-    els.viewNoteBtn.disabled = !hasText;
   }
 
   function activateResourceTab(name) {
     $$('#resourceTabs .nav-link').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
     $$('[data-pane]').forEach((p) => p.classList.toggle('d-none', p.dataset.pane !== name));
+    // For "text note" and "markdown" tabs, the resource IS the note — the
+    // separate "Notes (optional)" field would otherwise get clobbered by
+    // the resource text on save. Hide it for those tabs.
+    const hideNotes = (name === 'note' || name === 'markdown');
+    const section = document.getElementById('lessonNotesSection');
+    if (section) section.classList.toggle('d-none', hideNotes);
   }
 
   function openLessonModal(lessonId) {
@@ -933,8 +1019,11 @@
       if (!lesson) return;
       state.lessonEditingId = lessonId;
       els.lessonTitleInput.value = lesson.title;
-      els.lessonNotesInput.value = lesson.notes || '';
-      syncViewNoteBtn();
+      // For text/markdown the resource content lives in `lesson.notes` — leave
+      // the standalone "Notes (optional)" field empty so the user's notes
+      // aren't overwritten by the resource text on save.
+      const notesHoldResource = (lesson.type === 'text' || lesson.type === 'markdown');
+      els.lessonNotesInput.value = notesHoldResource ? '' : (lesson.notes || '');
 
       if (['youtube', 'article', 'website'].includes(lesson.type) && /^https?:\/\//i.test(lesson.resource || '')) {
         els.resourceLinkInput.value = lesson.resource;
@@ -997,11 +1086,13 @@
         payload.resource = link;
       }
     } else if (activeTab === 'note') {
-      const note = els.resourceNoteInput.value;
-      payload.resource = ''; // text note only uses notes field; but we can also store in resource
+      // Text notes and markdown both store their content in `notes`. The
+      // standalone "Notes (optional)" field is hidden for these tabs and
+      // intentionally NOT merged in — otherwise typing in the resource box
+      // would silently overwrite the user's separate notes.
+      payload.resource = '';
       payload.type = 'text';
-      // store the actual note text in `notes` for the editor; but keep `resource` empty so type is text
-      payload.notes = note || notes;
+      payload.notes = els.resourceNoteInput.value;
     } else if (activeTab === 'markdown') {
       const md = els.resourceMarkdownInput.value;
       if (!md.trim()) {
@@ -1127,6 +1218,23 @@
     }
   }
 
+  function exportActiveCourse() {
+    const id = state.activeCourseId;
+    if (!id) {
+      toast('Open a course first, then export it.');
+      return;
+    }
+    // Use a hidden anchor so the browser honours the server-supplied filename
+    // (Content-Disposition). The authless GET is a plain download.
+    const a = document.createElement('a');
+    a.href = `/api/courses/${encodeURIComponent(id)}/export`;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => a.remove(), 0);
+  }
+
   // ---------- File upload --------------------------------------------------
   async function handleFileUpload(file) {
     if (!file) return;
@@ -1243,7 +1351,7 @@
         } catch (_) { /* ignore */ }
       });
     }
-    ['previewModalEl', 'lessonModalEl', 'courseModalEl', 'notePreviewModalEl'].forEach((key) => {
+    ['previewModalEl', 'lessonModalEl', 'courseModalEl'].forEach((key) => {
       const el = els[key];
       if (!el) return;
       el.addEventListener('hidden.bs.modal', () => stopModalMedia(el));
@@ -1251,6 +1359,26 @@
 
     els.newCourseBtn.addEventListener('click', openCourseCreateModal);
     els.toggleActionsBtn.addEventListener('click', toggleViewMode);
+    if (els.importCourseBtn) els.importCourseBtn.addEventListener('click', openImportModal);
+    if (els.importSubmitBtn) els.importSubmitBtn.addEventListener('click', submitImportCourse);
+    if (els.importFileInput) {
+      els.importFileInput.addEventListener('change', () => {
+        // Auto-populate the textarea from the picked file so the user can
+        // see what they're about to submit.
+        const file = els.importFileInput.files && els.importFileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (els.importJsonInput) els.importJsonInput.value = String(reader.result || '');
+        };
+        reader.onerror = () => showImportError('Could not read the picked file');
+        reader.readAsText(file);
+      });
+    }
+    if (els.importModalEl) {
+      els.importModalEl.addEventListener('hidden.bs.modal', resetImportForm);
+    }
+    if (els.exportCourseBtn) els.exportCourseBtn.addEventListener('click', exportActiveCourse);
     if (els.syncProgressBtn) els.syncProgressBtn.addEventListener('click', syncProgress);
     if (els.streaksBtn) els.streaksBtn.addEventListener('click', toggleStreaks);
     if (els.streaksCloseBtn) els.streaksCloseBtn.addEventListener('click', closeStreaks);
@@ -1294,21 +1422,6 @@
 
     els.saveCourseBtn.addEventListener('click', saveCourseFromModal);
     els.saveLessonBtn.addEventListener('click', saveLessonFromModal);
-
-    // View note button — opens the full note in a modal so long notes
-    // aren't hidden behind the 3-row textarea.
-    if (els.lessonNotesInput && els.viewNoteBtn) {
-      els.lessonNotesInput.addEventListener('input', syncViewNoteBtn);
-      els.viewNoteBtn.addEventListener('click', () => {
-        if (els.viewNoteBtn.disabled) return;
-        const text = (els.lessonNotesInput.value || '').trim();
-        if (!text) return;
-        const titleEl = els.lessonTitleInput.value.trim() || 'Note';
-        els.notePreviewTitle.textContent = `Note — ${titleEl}`;
-        els.notePreviewBody.textContent = text;
-        bs.notePreviewModal.show();
-      });
-    }
 
     // Resource tabs
     $$('#resourceTabs .nav-link').forEach((btn) => {
