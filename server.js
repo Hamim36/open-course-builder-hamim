@@ -3,10 +3,27 @@ const express = require('express');
 const { v4: uuid } = require('uuid');
 const fs = require('fs');
 const path = require('path');
+// dotenv loads .env into process.env before we read GROQ_API_KEY below.
+require('dotenv').config();
+// Groq SDK is CommonJS-compatible (type=commonjs in its package.json), so
+// `require()` works alongside the rest of this file. The client is only
+// constructed when GROQ_API_KEY is set; routes surface a clear 503 if not.
+const Groq = require('groq-sdk');
 
 const ROOT = __dirname;
 const DB_DIR = path.join(ROOT, 'db');
 const PORT = process.env.PORT || 3000;
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+
+// Lazily-built singleton. We only construct once and only when the key is
+// present, so a misconfigured env does not crash server startup.
+let _groq = null;
+function getGroq() {
+  const key = (process.env.GROQ_API_KEY || '').trim();
+  if (!key) return null;
+  if (!_groq) _groq = new Groq({ apiKey: key });
+  return _groq;
+}
 
 // --- Ensure folders / db exist ---------------------------------------------
 if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
@@ -39,6 +56,10 @@ function readCourse(id) {
       err.status = 500;
       throw err;
     }
+    // Backwards-compat: courses created before the tasks feature don't have
+    // a `tasks` field. Always hand callers a valid array so the rest of the
+    // code (and the frontend) can iterate without null checks.
+    if (!Array.isArray(course.tasks)) course.tasks = [];
     return course;
   } catch (err) {
     if (err.code === 'ENOENT') {
@@ -149,6 +170,7 @@ app.post('/api/courses', (req, res) => {
     createdAt: now,
     updatedAt: now,
     lessons: (Array.isArray(lessons) ? lessons : []).map((l) => normalizeLesson(l)),
+    tasks: [],
   };
 
   writeCourse(course);
@@ -366,6 +388,151 @@ app.delete('/api/courses/:id/lessons/:lessonId', (req, res) => {
   res.json({ ok: true });
 });
 
+// --- Tasks -----------------------------------------------------------------
+// A task is an LLM-graded exercise: an instructor writes a Markdown question
+// and a hidden "LLM instruction" (system prompt). A learner submits a free-
+// text answer, the server asks Groq to evaluate it, and the resulting feedback
+// is stored on the task so the learner can review it later. Submissions are
+// kept (with timestamps) so the learner sees history, not just the latest try.
+
+function ensureTasksArray(course) {
+  // Defensive: courses imported from older exports may not have a `tasks`
+  // field. We always read/write through this helper so the rest of the
+  // route handlers can assume `course.tasks` is an array.
+  if (!Array.isArray(course.tasks)) course.tasks = [];
+  return course.tasks;
+}
+
+function findTask(course, taskId) {
+  return ensureTasksArray(course).find((t) => t.id === taskId);
+}
+
+function normalizeTask(input) {
+  // Title is the only required user-facing field. The question and instruction
+  // can technically be empty, but in practice the instructor must fill them in
+  // for the task to be useful. We do not enforce that here so the API stays
+  // forgiving; the UI validates.
+  const title = (input.title || 'Untitled task').toString().trim() || 'Untitled task';
+  const question = (input.question || '').toString();
+  const instruction = (input.instruction || '').toString();
+  return {
+    id: uuid(),
+    title,
+    question,
+    instruction,
+    createdAt: new Date().toISOString(),
+    submissions: [],
+  };
+}
+
+function normalizeSubmission(input) {
+  // Truncate very long learner answers so a single submission can't bloat the
+  // course file. 200KB is far above any reasonable short answer and well under
+  // any practical model context window.
+  let answer = (input && typeof input.answer === 'string') ? input.answer : '';
+  if (answer.length > 200 * 1024) answer = answer.slice(0, 200 * 1024);
+  return {
+    id: uuid(),
+    answer,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+app.post('/api/courses/:id/tasks', (req, res) => {
+  let course;
+  try { course = readCourse(req.params.id); }
+  catch (err) { return res.status(err.status || 500).json({ error: err.message }); }
+
+  const task = normalizeTask(req.body || {});
+  ensureTasksArray(course).push(task);
+  course.updatedAt = new Date().toISOString();
+  writeCourse(course);
+  res.status(201).json(task);
+});
+
+app.delete('/api/courses/:id/tasks/:taskId', (req, res) => {
+  let course;
+  try { course = readCourse(req.params.id); }
+  catch (err) { return res.status(err.status || 500).json({ error: err.message }); }
+
+  const tasks = ensureTasksArray(course);
+  const before = tasks.length;
+  course.tasks = tasks.filter((t) => t.id !== req.params.taskId);
+  if (course.tasks.length === before) return res.status(404).json({ error: 'Task not found' });
+  course.updatedAt = new Date().toISOString();
+  writeCourse(course);
+  res.json({ ok: true });
+});
+
+// Submit a learner's answer to a task. Calls Groq with the task's instruction
+// (system role) and the question + answer (user role), then stores the
+// model's feedback on the task as a new submission. Returns the saved
+// submission (with feedback) so the UI can render it immediately.
+app.post('/api/courses/:id/tasks/:taskId/submit', async (req, res) => {
+  let course;
+  try { course = readCourse(req.params.id); }
+  catch (err) { return res.status(err.status || 500).json({ error: err.message }); }
+
+  const task = findTask(course, req.params.taskId);
+  if (!task) return res.status(404).json({ error: 'Task not found' });
+
+  const groq = getGroq();
+  if (!groq) {
+    return res.status(503).json({
+      error: 'GROQ_API_KEY is not configured on the server. Set it in .env and restart.',
+    });
+  }
+
+  const submission = normalizeSubmission(req.body || {});
+  if (!submission.answer.trim()) {
+    return res.status(400).json({ error: 'Answer cannot be empty' });
+  }
+
+  // Build the prompt. The instructor's instruction is the system message so
+  // it always wins over user content if the learner tries to inject
+  // instructions of their own. The user message carries the question and
+  // the learner's attempt, with clear delimiters so the model can find them.
+  const systemMsg = (task.instruction && task.instruction.trim())
+    ? task.instruction.trim()
+    : 'You are a helpful tutor. Read the learner\'s answer to the question and give concise, constructive feedback. Be kind, specific, and brief.';
+  const userMsg =
+    `Question:\n${task.question || '(no question provided)'}\n\n` +
+    `Learner's answer:\n${submission.answer}\n\n` +
+    `Reply with feedback only.`;
+
+  let feedback = '';
+  try {
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [
+        { role: 'system', content: systemMsg },
+        { role: 'user', content: userMsg },
+      ],
+      temperature: 0.4,
+    });
+    feedback = (completion.choices && completion.choices[0] && completion.choices[0].message
+      && typeof completion.choices[0].message.content === 'string')
+      ? completion.choices[0].message.content.trim()
+      : '';
+    if (!feedback) feedback = '(The model returned an empty response.)';
+  } catch (err) {
+    // Surface a clean error to the client. The Groq SDK throws a single Error
+    // whose message usually includes the HTTP status (e.g. "401 ..." or
+    // "429 ...") and the human-readable reason. We pass it through.
+    const status = (err && err.status) ? err.status : 502;
+    return res.status(status).json({
+      error: 'Groq request failed: ' + ((err && err.message) ? err.message : String(err)),
+    });
+  }
+
+  submission.feedback = feedback;
+  if (!Array.isArray(task.submissions)) task.submissions = [];
+  task.submissions.push(submission);
+  course.updatedAt = new Date().toISOString();
+  writeCourse(course);
+  res.status(201).json({ submission, taskId: task.id });
+});
+
 // --- Sync the db/ folder to the remote (git add/commit/push) ---------------
 // Runs `git add db/ && git commit -m "synced" && git push origin main` from
 // the server's cwd. Returns a small JSON report so the UI can toast the result.
@@ -480,6 +647,7 @@ app.post('/api/courses/import', (req, res) => {
     createdAt: now,
     updatedAt: now,
     lessons: normalisedLessons,
+    tasks: [],
   };
 
   writeCourse(course);
