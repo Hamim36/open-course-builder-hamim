@@ -1335,10 +1335,12 @@
 
   // ---------- Event wiring -------------------------------------------------
   function wireEvents() {
-    // Stop any playing <video> / <audio> inside a modal as soon as it starts
-    // closing. Without this, dismissing the preview modal (close button,
-    // backdrop click, or Escape) leaves the media element in the DOM and the
-    // audio/video keeps playing in the background.
+    // Stop any playing <video> / <audio> / <iframe> inside a modal as soon as
+    // it starts closing. Without this, dismissing the preview modal (close
+    // button, backdrop click, or Escape) leaves the media element in the DOM
+    // and the audio/video — including YouTube embeds — keeps playing in the
+    // background. We stash the original `src` on a data attribute the first
+    // time we touch an iframe so the next open can restore it.
     function stopModalMedia(modalEl) {
       if (!modalEl) return;
       modalEl.querySelectorAll('video, audio').forEach((m) => {
@@ -1350,11 +1352,43 @@
           if (typeof m.load === 'function') m.load();
         } catch (_) { /* ignore */ }
       });
+      // YouTube (and any other external) embeds play inside <iframe>, not
+      // <video>, so the loop above can't touch them. Clearing `src` makes the
+      // browser drop the document and stop playback immediately for the
+      // close-button / backdrop / Escape paths alike.
+      modalEl.querySelectorAll('iframe').forEach((f) => {
+        try {
+          if (!f.dataset) return;
+          if (f.src && !f.dataset.ocbOrigSrc) {
+            f.dataset.ocbOrigSrc = f.src;
+          }
+          f.src = 'about:blank';
+        } catch (_) { /* ignore */ }
+      });
+    }
+    // Restore the original iframe src when the modal is shown again so the
+    // embed actually plays instead of staring at a blank page.
+    function restoreModalMedia(modalEl) {
+      if (!modalEl) return;
+      modalEl.querySelectorAll('iframe').forEach((f) => {
+        try {
+          const orig = f.dataset && f.dataset.ocbOrigSrc;
+          if (orig) {
+            f.src = orig;
+            delete f.dataset.ocbOrigSrc;
+          }
+        } catch (_) { /* ignore */ }
+      });
     }
     ['previewModalEl', 'lessonModalEl', 'courseModalEl'].forEach((key) => {
       const el = els[key];
       if (!el) return;
+      // `hide.bs.modal` fires the moment Bootstrap begins closing (close
+      // button, backdrop click, Escape) — that's the right moment to yank
+      // the iframe src so audio stops without waiting for the fade-out.
+      el.addEventListener('hide.bs.modal', () => stopModalMedia(el));
       el.addEventListener('hidden.bs.modal', () => stopModalMedia(el));
+      el.addEventListener('shown.bs.modal', () => restoreModalMedia(el));
     });
 
     els.newCourseBtn.addEventListener('click', openCourseCreateModal);
