@@ -787,7 +787,111 @@ body.hidden-actions .course-card-head-actions {
   to   { transform: rotate(360deg); }
 }
 
-/* ---------- Streaks panel + heatmap ------------------------------------- */
+/* Task runner: split layout */
+.task-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+.task-split > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.task-split-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+  margin-bottom: 0.35rem;
+}
+.task-pane {
+  flex: 1 1 auto;
+  min-height: 280px;
+  max-height: 60vh;
+  overflow: auto;
+}
+.task-pane-question {
+  background-color: #fff;
+  white-space: normal;
+}
+.task-pane-answer {
+  resize: vertical;
+  font-family: inherit;
+  min-height: 280px;
+}
+.task-feedback-wrap {
+  border-top: 1px solid #e9ecef;
+  padding-top: 0.75rem;
+}
+.task-feedback-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.task-feedback {
+  background-color: #f8f9fa;
+}
+.task-feedback:empty::before {
+  content: attr(data-empty);
+  color: #6c757d;
+}
+.task-pane-answer:disabled,
+.task-runner-busy .task-pane-answer {
+  background-color: #f1f3f5;
+  cursor: not-allowed;
+}
+.task-empty {
+  color: #6c757d;
+  font-size: 0.9rem;
+  padding: 0.75rem 1rem;
+  border: 1px dashed #dee2e6;
+  border-radius: 0.5rem;
+  text-align: center;
+  background-color: #fafbfc;
+}
+.task-card {
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.task-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.task-card-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.task-card-title {
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.task-card-meta {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+.detail-subsection-head {
+  border-top: 1px solid #e9ecef;
+  padding-top: 1rem;
+  margin-top: 1.5rem;
+}
+@media (max-width: 768px) {
+  .task-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Streak panel */
 .streaks-panel {
   position: absolute;
   top: calc(100% + 8px);
