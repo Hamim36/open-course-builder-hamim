@@ -501,9 +501,12 @@ body {
 
 .preview-image {
   max-width: 100%;
-  max-height: 80vh;
+  max-height: 75vh;
   display: block;
-  margin: 0 auto;
+  margin: auto;
+  background: #fff;
+  align-self: center;
+  justify-self: center;
 }
 
 .preview-text {
@@ -513,7 +516,10 @@ body {
   white-space: pre-wrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.95rem;
-  max-height: 75vh;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  width: 100%;
   overflow: auto;
 }
 
@@ -521,7 +527,10 @@ body {
   background: #fff;
   color: #1f2937;
   padding: 1.25rem 1.5rem;
-  max-height: 75vh;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  width: 100%;
   overflow: auto;
   line-height: 1.55;
 }
@@ -569,7 +578,7 @@ body {
 #previewModal .modal-dialog {
   width: 80vw;
   max-width: 80vw;
-  height: 65vh;
+  height: 75vh;
   margin: 5vh auto;
 }
 #previewModal .modal-content {
@@ -581,6 +590,144 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+/* Side-by-side: content (~75%) + lesson note sidebar (~25%) */
+.preview-content {
+  flex: 0 0 75%;
+  max-width: 75%;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  background: #000;
+  position: relative;
+  overflow: auto;
+}
+
+.preview-note-pane {
+  flex: 0 0 25%;
+  max-width: 25%;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-left: 1px solid var(--ocb-border, #e5e7eb);
+  min-height: 0;
+}
+
+.preview-note-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--ocb-border, #e5e7eb);
+  background: #f9fafb;
+  flex: 0 0 auto;
+}
+.preview-note-head-text { display: flex; align-items: center; font-size: 0.9rem; }
+.preview-note-toggle .btn { padding: 0.15rem 0.5rem; font-size: 0.8rem; }
+.preview-note-toggle .btn.active {
+  background-color: #1f2937;
+  color: #fff;
+  border-color: #1f2937;
+}
+
+.preview-note-edit,
+.preview-note-view {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.preview-note-view {
+  overflow: auto;
+  padding: 0;
+}
+
+.preview-note-input {
+  flex: 1 1 auto;
+  min-height: 0;
+  resize: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0.85rem 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #1f2937;
+  background: #ffffff;
+  outline: none;
+  box-shadow: none;
+}
+.preview-note-input:focus {
+  box-shadow: none;
+  border: 0;
+  outline: 1px solid #c7d2fe;
+}
+
+.preview-note-status {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.85rem;
+  border-top: 1px solid var(--ocb-border, #e5e7eb);
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.preview-note-status.is-saving { color: #b45309 !important; }
+.preview-note-status.is-error  { color: #b91c1c !important; }
+.preview-note-status.is-saved  { color: #15803d !important; }
+
+.preview-note-rendered {
+  background: #ffffff;
+  color: #1f2937;
+  padding: 0.9rem 1.1rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  line-height: 1.55;
+  font-size: 0.92rem;
+}
+.preview-note-rendered > *:first-child { margin-top: 0; }
+.preview-note-rendered > *:last-child  { margin-bottom: 0; }
+.preview-note-empty {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* No-content case (e.g. website links open in a new tab): hide content, sidebar takes full width */
+.preview-modal--no-content .preview-content {
+  display: none !important;
+}
+.preview-modal--no-content .preview-note-pane {
+  flex: 1 1 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* On smaller screens, stack the content and the note pane */
+@media (max-width: 768px) {
+  #previewModal .modal-body { flex-direction: column; overflow: auto; }
+  .preview-content { flex: 0 0 auto; max-width: 100%; min-height: 220px; }
+  .preview-note-pane {
+    flex: 0 0 auto;
+    max-width: 100%;
+    min-width: 0;
+    border-left: 0;
+    border-top: 1px solid var(--ocb-border, #e5e7eb);
+  }
+  .preview-modal--no-content .preview-note-pane { flex: 1 1 auto; }
 }
 
 /* Preview modal */
