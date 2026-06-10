@@ -60,6 +60,13 @@ function readCourse(id) {
     // a `tasks` field. Always hand callers a valid array so the rest of the
     // code (and the frontend) can iterate without null checks.
     if (!Array.isArray(course.tasks)) course.tasks = [];
+    // Same idea for the new metadata fields: authors / tags / courseLanguage
+    // were added later, so old course files won't have them. We materialise
+    // them as empty arrays on every read so the UI can render them
+    // unconditionally and `JSON.stringify` of a round-trip is stable.
+    if (!Array.isArray(course.authors)) course.authors = [];
+    if (!Array.isArray(course.tags)) course.tags = [];
+    if (!Array.isArray(course.courseLanguage)) course.courseLanguage = [];
     return course;
   } catch (err) {
     if (err.code === 'ENOENT') {
@@ -120,6 +127,89 @@ function findLesson(course, lessonId) {
 // Detect resource type. Only three resource types are supported: `link` (any
 // web URL), `text` (plain text resource body), and `markdown` (markdown
 // resource body). Local file uploads are intentionally not supported.
+
+// --- Course metadata normalisers ------------------------------------------
+// `authors` is an array of { authorName, authorLink }. We accept whatever the
+// client sends and clamp it to that shape:
+//   - drop entries without a non-empty authorName (the link alone is useless)
+//   - trim the name
+//   - if authorLink is empty, the entry is kept as name-only (no icon shown)
+//   - if authorLink is present, it must be a safe http(s) URL or we drop the
+//     link (we still keep the author name) so a bad input can't open javascript:
+//     or file:// URIs in a new tab
+// `tags` and `courseLanguage` are flat string arrays. We trim, drop empties,
+// de-dupe (case-insensitive for tags, case-sensitive for languages — "en" and
+// "EN" are different languages but the same tag), and cap the total length of
+// a single item so a pathological paste can't bloat the file.
+function normalizeAuthors(input) {
+  if (!Array.isArray(input)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const raw of input) {
+    if (!raw || typeof raw !== 'object') continue;
+    const name = String(raw.authorName || '').trim();
+    if (!name) continue;
+    if (name.length > 120) continue;
+    let link = String(raw.authorLink || '').trim();
+    if (link) {
+      if (!isSafeHttpUrl(link)) {
+        // Bad URL — keep the name but discard the link rather than rejecting
+        // the whole author, so a typo in one field doesn't lose the rest.
+        link = '';
+      } else if (link.length > 500) {
+        link = '';
+      }
+    }
+    const key = `${name.toLowerCase()}|${link.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ authorName: name, authorLink: link });
+    if (out.length >= 20) break; // hard cap
+  }
+  return out;
+}
+
+function isSafeHttpUrl(value) {
+  if (typeof value !== 'string') return false;
+  let url;
+  try { url = new URL(value); } catch (_) { return false; }
+  return url.protocol === 'http:' || url.protocol === 'https:';
+}
+
+function normalizeTagList(input) {
+  if (!Array.isArray(input)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const raw of input) {
+    if (raw == null) continue;
+    const tag = String(raw).trim();
+    if (!tag) continue;
+    if (tag.length > 40) continue;
+    const key = tag.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(tag);
+    if (out.length >= 30) break;
+  }
+  return out;
+}
+
+function normalizeLanguageList(input) {
+  if (!Array.isArray(input)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const raw of input) {
+    if (raw == null) continue;
+    const lang = String(raw).trim();
+    if (!lang) continue;
+    if (lang.length > 40) continue;
+    if (seen.has(lang)) continue;
+    seen.add(lang);
+    out.push(lang);
+    if (out.length >= 20) break;
+  }
+  return out;
+}
 function detectType(input) {
   if (!input) return 'text';
   const value = String(input).trim();
@@ -159,7 +249,14 @@ app.get('/api/courses/:id', (req, res) => {
 });
 
 app.post('/api/courses', (req, res) => {
-  const { title = 'Untitled Course', description = '', lessons = [] } = req.body || {};
+  const {
+    title = 'Untitled Course',
+    description = '',
+    lessons = [],
+    authors,
+    tags,
+    courseLanguage,
+  } = req.body || {};
   if (!title.trim()) return res.status(400).json({ error: 'Title is required' });
 
   const now = new Date().toISOString();
@@ -170,6 +267,9 @@ app.post('/api/courses', (req, res) => {
     createdAt: now,
     updatedAt: now,
     lessons: (Array.isArray(lessons) ? lessons : []).map((l) => normalizeLesson(l)),
+    authors: normalizeAuthors(authors),
+    tags: normalizeTagList(tags),
+    courseLanguage: normalizeLanguageList(courseLanguage),
     tasks: [],
   };
 
@@ -182,9 +282,15 @@ app.put('/api/courses/:id', (req, res) => {
   try { course = readCourse(req.params.id); }
   catch (err) { return res.status(err.status || 500).json({ error: err.message }); }
 
-  const { title, description } = req.body || {};
+  const { title, description, authors, tags, courseLanguage } = req.body || {};
   if (typeof title === 'string') course.title = title.trim() || course.title;
   if (typeof description === 'string') course.description = description.trim();
+  // Only overwrite the metadata arrays when the client actually sends them,
+  // so an edit that only changes the title/description doesn't wipe the
+  // authors/tags/languages that were already stored.
+  if (Array.isArray(authors)) course.authors = normalizeAuthors(authors);
+  if (Array.isArray(tags)) course.tags = normalizeTagList(tags);
+  if (Array.isArray(courseLanguage)) course.courseLanguage = normalizeLanguageList(courseLanguage);
   course.updatedAt = new Date().toISOString();
   writeCourse(course);
   res.json(course);
@@ -647,6 +753,9 @@ app.post('/api/courses/import', (req, res) => {
     createdAt: now,
     updatedAt: now,
     lessons: normalisedLessons,
+    authors: normalizeAuthors(body.authors),
+    tags: normalizeTagList(body.tags),
+    courseLanguage: normalizeLanguageList(body.courseLanguage),
     tasks: [],
   };
 
