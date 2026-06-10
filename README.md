@@ -79,7 +79,7 @@ In short: **everything the paid platforms give you, minus the bill and the lock-
 - **Import** a course by pasting JSON or picking a `.json` file. The import always re-mints IDs so it can never collide with your existing courses.
 - **Sync progress** runs `git add db/ && git commit -m "synced" && git push` for you. Your entire learning history ends up on GitHub.
 
-### Built to be hacked
+### Built to be no infra, self hosted by you!
 - Single-file Express server. No build step. No bundler. No ORM. No migrations.
 - Frontend is a single `index.html` + `app.js` + `styles.css`. Open DevTools and start editing.
 - Storage is plain JSON files in `db/`. Diff them in git, grep them, back them up with `cp -r db/ ~/backups/`.
