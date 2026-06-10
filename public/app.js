@@ -70,6 +70,19 @@
     addLessonRowBtn: $('#addLessonRowBtn'),
     saveCourseBtn: $('#saveCourseBtn'),
 
+    // New course metadata fields
+    addAuthorRowBtn: $('#addAuthorRowBtn'),
+    courseFormAuthors: $('#courseFormAuthors'),
+    courseFormTags: $('#courseFormTags'),
+    courseTagsInput: $('#courseTagsInput'),
+    courseFormLanguages: $('#courseFormLanguages'),
+    courseLanguagesInput: $('#courseLanguagesInput'),
+
+    // Detail page blocks
+    detailAuthors: $('#detailAuthors'),
+    detailTags: $('#detailTags'),
+    detailLanguages: $('#detailLanguages'),
+
     lessonModalEl: $('#lessonModal'),
     lessonModalTitle: $('#lessonModalTitle'),
     lessonForm: $('#lessonForm'),
@@ -196,6 +209,166 @@
     if (!course.lessons || !course.lessons.length) return 0;
     const done = course.lessons.filter((l) => l.isCompleted).length;
     return Math.round((done / course.lessons.length) * 100);
+  }
+
+  // ---------- Course metadata helpers (authors / tags / languages) ---------
+  function makeChip(text, onRemove) {
+    const chip = document.createElement('span');
+    chip.className = 'ocb-chip ocb-chip-removable';
+    const label = document.createElement('span');
+    label.className = 'ocb-chip-label';
+    label.textContent = text;
+    chip.appendChild(label);
+    if (onRemove) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ocb-chip-remove';
+      btn.setAttribute('aria-label', `Remove ${text}`);
+      btn.innerHTML = '<i class="bi bi-x"></i>';
+      btn.addEventListener('click', () => onRemove(chip));
+      chip.appendChild(btn);
+    }
+    return chip;
+  }
+
+  function addChipToContainer(container, value) {
+    if (!container) return null;
+    const trimmed = String(value || '').trim();
+    if (!trimmed) return null;
+    // Case-insensitive dedupe within a container.
+    const existing = Array.from(container.querySelectorAll('.ocb-chip .ocb-chip-label'))
+      .some((el) => (el.textContent || '').trim().toLowerCase() === trimmed.toLowerCase());
+    if (existing) return null;
+    const chip = makeChip(trimmed, (node) => node.remove());
+    container.appendChild(chip);
+    return chip;
+  }
+
+  function readChips(container) {
+    if (!container) return [];
+    return Array.from(container.querySelectorAll('.ocb-chip .ocb-chip-label'))
+      .map((el) => (el.textContent || '').trim())
+      .filter(Boolean);
+  }
+
+  function clearChips(container) {
+    if (container) container.innerHTML = '';
+  }
+
+  function makeAuthorRow(name, link) {
+    const row = document.createElement('div');
+    row.className = 'author-row';
+    row.innerHTML = `
+      <input type="text" class="form-control form-control-sm author-name" placeholder="Author name" />
+      <input type="url" class="form-control form-control-sm author-link" placeholder="Optional link (LinkedIn, X, portfolio, …)" />
+      <button type="button" class="btn btn-sm btn-outline-danger author-remove" aria-label="Remove author">
+        <i class="bi bi-x"></i>
+      </button>`;
+    const nameInput = row.querySelector('.author-name');
+    const linkInput = row.querySelector('.author-link');
+    nameInput.value = name || '';
+    linkInput.value = link || '';
+    row.querySelector('.author-remove').addEventListener('click', () => row.remove());
+    return row;
+  }
+
+  function readAuthorRows(container) {
+    if (!container) return [];
+    const seen = new Set();
+    const out = [];
+    Array.from(container.querySelectorAll('.author-row')).forEach((row) => {
+      const name = (row.querySelector('.author-name').value || '').trim();
+      const link = (row.querySelector('.author-link').value || '').trim();
+      if (!name) return;
+      const key = `${name.toLowerCase()}|${link.toLowerCase()}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ authorName: name, authorLink: link });
+    });
+    return out;
+  }
+
+  function clearAuthorRows(container) {
+    if (container) container.innerHTML = '';
+  }
+
+  // Collect authors / tags / languages from the course modal form.
+  // - Authors must have a name; the link is optional.
+  // - Tags / languages are pulled from the visible chip containers.
+  function collectCourseMetadata() {
+    return {
+      authors: readAuthorRows(els.courseFormAuthors),
+      tags: readChips(els.courseFormTags),
+      courseLanguage: readChips(els.courseFormLanguages),
+    };
+  }
+
+  function populateCourseMetadata(course) {
+    clearAuthorRows(els.courseFormAuthors);
+    clearChips(els.courseFormTags);
+    clearChips(els.courseFormLanguages);
+    const authors = Array.isArray(course && course.authors) ? course.authors : [];
+    authors.forEach((a) => {
+      if (!a || !a.authorName) return;
+      els.courseFormAuthors.appendChild(makeAuthorRow(a.authorName, a.authorLink || ''));
+    });
+    const tags = Array.isArray(course && course.tags) ? course.tags : [];
+    tags.forEach((t) => addChipToContainer(els.courseFormTags, t));
+    const langs = Array.isArray(course && course.courseLanguage) ? course.courseLanguage : [];
+    langs.forEach((l) => addChipToContainer(els.courseFormLanguages, l));
+  }
+
+  function resetCourseMetadata() {
+    clearAuthorRows(els.courseFormAuthors);
+    clearChips(els.courseFormTags);
+    clearChips(els.courseFormLanguages);
+    if (els.courseTagsInput) els.courseTagsInput.value = '';
+    if (els.courseLanguagesInput) els.courseLanguagesInput.value = '';
+  }
+
+  // Render the read-only authors / tags / languages sections on the detail page.
+  function renderDetailMetadata(course) {
+    const authors = Array.isArray(course && course.authors) ? course.authors : [];
+    const tags = Array.isArray(course && course.tags) ? course.tags : [];
+    const langs = Array.isArray(course && course.courseLanguage) ? course.courseLanguage : [];
+
+    if (els.detailAuthors) {
+      els.detailAuthors.innerHTML = renderAuthorsInline(authors) || '';
+      const block = document.getElementById('detailAuthorsBlock');
+      if (block) block.classList.toggle('d-none', !authors.some((a) => a && a.authorName));
+    }
+    if (els.detailTags) {
+      els.detailTags.innerHTML = renderChipList(tags);
+      const block = document.getElementById('detailTagsBlock');
+      if (block) block.classList.toggle('d-none', !tags.filter(Boolean).length);
+    }
+    if (els.detailLanguages) {
+      els.detailLanguages.innerHTML = renderChipList(langs);
+      const block = document.getElementById('detailLanguagesBlock');
+      if (block) block.classList.toggle('d-none', !langs.filter(Boolean).length);
+    }
+  }
+
+  // Render helpers for displaying authors / chips in read-only views.
+  function renderAuthorsInline(authors) {
+    const list = (authors || []).filter((a) => a && a.authorName);
+    if (!list.length) return '';
+    const items = list.map((a) => {
+      const name = escapeHtml(a.authorName);
+      const link = (a.authorLink || '').trim();
+      if (link) {
+        return `<span class="course-author">${name} <a class="course-author-link" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${name}'s link"><i class="bi bi-box-arrow-up-right"></i></a></span>`;
+      }
+      return `<span class="course-author">${name}</span>`;
+    }).join('<span class="course-author-sep">·</span>');
+    return `<div class="course-authors">${items}</div>`;
+  }
+
+  function renderChipList(values) {
+    const list = (values || []).filter((v) => v && String(v).trim());
+    if (!list.length) return '';
+    const chips = list.map((v) => `<span class="ocb-chip"><span class="ocb-chip-label">${escapeHtml(v)}</span></span>`).join('');
+    return `<div class="ocb-chip-list ocb-chip-list-static">${chips}</div>`;
   }
 
   async function api(method, url, body) {
@@ -569,6 +742,7 @@
                   ${c.description
                     ? `<p class="course-card-desc">${escapeHtml(c.description)}</p>`
                     : `<p class="course-card-desc is-muted">No description</p>`}
+                  ${renderAuthorsInline(c.authors)}
                 </div>
                 <div class="course-card-head-actions">
                   <div class="progress-ring ${isComplete ? 'is-complete' : ''}" role="img"
@@ -641,6 +815,7 @@
     els.detailTitle.textContent = course.title;
     els.detailMeta.textContent = `${course.lessons.length} lesson${course.lessons.length === 1 ? '' : 's'} · updated ${formatDate(course.updatedAt)}`;
     els.detailDescription.textContent = course.description || '';
+    renderDetailMetadata(course);
     const lessons = course.lessons || [];
     const total = lessons.length;
     const done = lessons.filter((l) => l.isCompleted).length;
@@ -799,6 +974,7 @@
     els.saveCourseBtn.textContent = 'Create course';
     els.courseTitleInput.value = '';
     els.courseDescInput.value = '';
+    resetCourseMetadata();
     renderCourseFormLessons();
     bs.courseModal.show();
     setTimeout(() => els.courseTitleInput.focus(), 200);
@@ -812,6 +988,7 @@
     els.courseTitleInput.value = course.title;
     els.courseDescInput.value = course.description || '';
     state.courseDraftLessons = [];
+    populateCourseMetadata(course);
     renderCourseFormLessons();
     bs.courseModal.show();
   }
@@ -962,17 +1139,31 @@
     const lessons = state.courseDraftLessons
       .map((l) => ({ ...l, title: (l.title || '').trim() }))
       .filter((l) => l.title);
+    const metadata = collectCourseMetadata();
 
     try {
       if (state.activeCourseId && els.courseModalTitle.textContent === 'Edit course') {
-        await api('PUT', `/api/courses/${state.activeCourseId}`, { title, description });
+        await api('PUT', `/api/courses/${state.activeCourseId}`, {
+          title,
+          description,
+          authors: metadata.authors,
+          tags: metadata.tags,
+          courseLanguage: metadata.courseLanguage,
+        });
         // Add the draft lessons if any
         for (const l of lessons) {
           await api('POST', `/api/courses/${state.activeCourseId}/lessons`, l);
         }
         toast('Course updated');
       } else {
-        const course = await api('POST', '/api/courses', { title, description, lessons });
+        const course = await api('POST', '/api/courses', {
+          title,
+          description,
+          lessons,
+          authors: metadata.authors,
+          tags: metadata.tags,
+          courseLanguage: metadata.courseLanguage,
+        });
         state.activeCourseId = course.id;
         toast('Course created');
       }
@@ -1776,6 +1967,47 @@
       state.courseDraftLessons.push({ title: '', resource: '', type: 'website', notes: '' });
       renderCourseFormLessons();
     });
+
+    // Course metadata wiring: add author row + chip inputs for tags/languages
+    if (els.addAuthorRowBtn && els.courseFormAuthors) {
+      els.addAuthorRowBtn.addEventListener('click', () => {
+        const row = makeAuthorRow('', '');
+        els.courseFormAuthors.appendChild(row);
+        const first = row.querySelector('.author-name');
+        if (first) first.focus();
+      });
+    }
+
+    function wireChipInput(input, container) {
+      if (!input || !container) return;
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ',') {
+          e.preventDefault();
+          const v = input.value;
+          // Split on comma too so pasting "a, b" creates two chips.
+          v.split(',').forEach((part) => {
+            if (part.trim()) addChipToContainer(container, part);
+          });
+          input.value = '';
+        } else if (e.key === 'Backspace' && !input.value) {
+          const chips = container.querySelectorAll('.ocb-chip');
+          const last = chips[chips.length - 1];
+          if (last) last.remove();
+        }
+      });
+      input.addEventListener('blur', () => {
+        const v = input.value;
+        if (v && v.trim()) {
+          v.split(',').forEach((part) => {
+            if (part.trim()) addChipToContainer(container, part);
+          });
+          input.value = '';
+        }
+      });
+    }
+
+    wireChipInput(els.courseTagsInput, els.courseFormTags);
+    wireChipInput(els.courseLanguagesInput, els.courseFormLanguages);
 
     els.saveCourseBtn.addEventListener('click', saveCourseFromModal);
     els.saveLessonBtn.addEventListener('click', saveLessonFromModal);
