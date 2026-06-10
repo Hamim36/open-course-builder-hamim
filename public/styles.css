@@ -1059,3 +1059,123 @@ body.hidden-actions .course-card-head-actions {
   .streaks-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+/* ---------- Course metadata (authors / tags / languages) ------------------ */
+.course-authors {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--ocb-muted);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  line-height: 1.4;
+}
+.course-author-sep {
+  color: var(--ocb-muted);
+  opacity: 0.5;
+}
+.course-author-link {
+  color: var(--bs-primary, #0d6efd);
+  text-decoration: none;
+  margin-left: 0.15rem;
+  font-size: 0.85em;
+  vertical-align: baseline;
+}
+.course-author-link:hover {
+  text-decoration: underline;
+}
+
+/* Detail page: authors / tags / languages blocks under the description */
+.detail-meta-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0.75rem 0 1rem;
+}
+.detail-meta-block .detail-meta-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ocb-muted);
+  margin: 0 0 0.25rem;
+}
+
+/* Authors in the course modal */
+.author-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.author-row .author-name { flex: 1 1 35%; min-width: 0; }
+.author-row .author-link { flex: 1 1 50%; min-width: 0; }
+.author-row .author-remove { flex: 0 0 auto; }
+
+/* Chip input (used for tags + languages) */
+.ocb-chip-input-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--ocb-border);
+  border-radius: var(--ocb-radius);
+  background: #fff;
+  min-height: calc(2.25rem + 2px);
+  cursor: text;
+}
+.ocb-chip-input-wrap:focus-within {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
+.ocb-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ocb-chip-list-static { display: flex; }
+.ocb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  background: #eef2ff;
+  color: #1f2937;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.ocb-chip-removable { padding-right: 0.3rem; }
+.ocb-chip-remove {
+  background: transparent;
+  border: 0;
+  color: var(--ocb-muted);
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.ocb-chip-remove:hover { background: rgba(0, 0, 0, 0.08); color: #1f2937; }
+.ocb-chip-input-wrap input[type="text"] {
+  flex: 1 1 8rem;
+  min-width: 8rem;
+  border: 0;
+  outline: 0;
+  padding: 0.15rem 0.25rem;
+  font-size: 0.9rem;
+  background: transparent;
+}
+
