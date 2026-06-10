@@ -167,6 +167,20 @@
           </div>
         </div>
         <p class="text-muted" id="detailDescription"></p>
+        <div class="detail-meta-blocks">
+          <div class="detail-meta-block d-none" id="detailAuthorsBlock">
+            <h6 class="detail-meta-label">Authors</h6>
+            <div id="detailAuthors"></div>
+          </div>
+          <div class="detail-meta-block d-none" id="detailTagsBlock">
+            <h6 class="detail-meta-label">Tags</h6>
+            <div id="detailTags"></div>
+          </div>
+          <div class="detail-meta-block d-none" id="detailLanguagesBlock">
+            <h6 class="detail-meta-label">Course language(s)</h6>
+            <div id="detailLanguages"></div>
+          </div>
+        </div>
         <div class="detail-stats" id="detailStats">
           <div class="detail-stat detail-stat-total">
             <div class="detail-stat-icon"><i class="bi bi-collection"></i></div>
@@ -240,6 +254,47 @@
                   maxlength="500"
                   placeholder="Short description of what this course covers"
                 ></textarea>
+              </div>
+
+              <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label mb-0">Authors <span class="text-muted small">(optional)</span></label>
+                  <button type="button" class="btn btn-sm btn-outline-primary ocb-action-btn" id="addAuthorRowBtn">
+                    <i class="bi bi-plus"></i> Add author
+                  </button>
+                </div>
+                <div class="text-muted small mb-2">Each author can have an optional link (LinkedIn, portfolio, X, etc.).</div>
+                <div id="courseFormAuthors"></div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Tags <span class="text-muted small">(optional, press Enter to add)</span></label>
+                <div class="ocb-chip-input-wrap">
+                  <div id="courseFormTags" class="ocb-chip-list" aria-label="Course tags"></div>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="courseTagsInput"
+                    placeholder="e.g. javascript, frontend, beginner"
+                    maxlength="40"
+                    autocomplete="off"
+                  />
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Course language(s) <span class="text-muted small">(optional, press Enter to add)</span></label>
+                <div class="ocb-chip-input-wrap">
+                  <div id="courseFormLanguages" class="ocb-chip-list" aria-label="Course languages"></div>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="courseLanguagesInput"
+                    placeholder="e.g. English, বাংলা, Español"
+                    maxlength="40"
+                    autocomplete="off"
+                  />
+                </div>
               </div>
 
               <hr />
