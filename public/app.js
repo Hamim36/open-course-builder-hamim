@@ -141,6 +141,13 @@
 
     toastEl: $('#toast'),
     toastBody: $('#toastBody'),
+
+    // Theme dropdown (navbar)
+    themeDropdownBtn: $('#themeDropdownBtn'),
+    themeDropdownIcon: $('#themeDropdownIcon'),
+    activeThemeLabel: $('#activeThemeLabel'),
+    themeDropdownMenu: $('#themeDropdownMenu'),
+    themeChoices: $$('[data-theme-choice]'),
   };
 
   const bs = {
@@ -1494,7 +1501,7 @@
       .slice()
       .reverse()
       .map((s) => `
-        <details class="mb-2 border rounded p-2 bg-white">
+        <details class="task-submission mb-2 border rounded p-2 bg-body">
           <summary class="d-flex justify-content-between align-items-center" style="cursor:pointer; list-style:none;">
             <span><i class="bi bi-chat-left-text me-1"></i> Submission from ${formatDate(s.createdAt)}</span>
             <span class="text-muted small">${escapeHtml(s.answer.slice(0, 60))}${s.answer.length > 60 ? '…' : ''}</span>
@@ -2031,8 +2038,87 @@
     });
   }
 
+  // ---------- Theme controller --------------------------------------------
+  // Stores the user's chosen mode ('system' | 'light' | 'dark'). The actually
+  // applied attribute on <html> is resolved from this on every change and on
+  // OS-level prefers-color-scheme updates.
+  const THEME_KEY = 'ocb.theme';
+  const THEME_LABEL = { system: 'System', light: 'Light', dark: 'Dark' };
+  const THEME_ICON = {
+    system: 'bi-circle-half',
+    light: 'bi-sun-fill',
+    dark: 'bi-moon-stars-fill',
+  };
+
+  function getStoredTheme() {
+    try {
+      const stored = localStorage.getItem(THEME_KEY);
+      if (stored === 'system' || stored === 'light' || stored === 'dark') return stored;
+    } catch (e) { /* localStorage may be unavailable */ }
+    return 'system';
+  }
+
+  function resolveTheme(mode) {
+    if (mode === 'light' || mode === 'dark') return mode;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  }
+
+  function applyTheme(mode) {
+    const resolved = resolveTheme(mode);
+    document.documentElement.setAttribute('data-bs-theme', resolved);
+    updateThemeUI(mode);
+  }
+
+  function updateThemeUI(mode) {
+    if (els.activeThemeLabel) {
+      els.activeThemeLabel.textContent = THEME_LABEL[mode] || 'System';
+    }
+    if (els.themeDropdownIcon) {
+      els.themeDropdownIcon.className = 'bi me-1 ' + (THEME_ICON[mode] || 'bi-circle-half');
+    }
+    (els.themeChoices || []).forEach((btn) => {
+      const isActive = btn.dataset.themeChoice === mode;
+      const check = btn.querySelector('[data-theme-check]');
+      if (check) {
+        check.classList.toggle('d-none', !isActive);
+      }
+      btn.setAttribute('aria-checked', isActive ? 'true' : 'false');
+    });
+  }
+
+  function setTheme(mode) {
+    applyTheme(mode);
+    try { localStorage.setItem(THEME_KEY, mode); } catch (e) { /* ignore */ }
+  }
+
+  function wireTheme() {
+    if (els.themeDropdownMenu) {
+      els.themeDropdownMenu.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-theme-choice]');
+        if (!btn) return;
+        const choice = btn.dataset.themeChoice;
+        if (choice === 'system' || choice === 'light' || choice === 'dark') {
+          setTheme(choice);
+        }
+      });
+    }
+    // Re-apply when the user changes OS-level theme while in 'system' mode.
+    if (window.matchMedia) {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      const handler = () => {
+        if (getStoredTheme() === 'system') applyTheme('system');
+      };
+      if (mq.addEventListener) mq.addEventListener('change', handler);
+      else if (mq.addListener) mq.addListener(handler); // older Safari
+    }
+  }
+
   // ---------- Init ---------------------------------------------------------
   function init() {
+    applyTheme(getStoredTheme()); // apply persisted theme before first render
+    wireTheme();
     wireEvents();
     initViewMode();
     loadCourses();
