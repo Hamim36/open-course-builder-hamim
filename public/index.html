@@ -26,6 +26,9 @@
           <i class="bi bi-mortarboard-fill text-primary"></i>
           <span>Open Course Builder</span>
         </a>
+        <a class="btn btn-outline-primary btn-sm ocb-action-btn mx-auto" id="discoverCoursesBtn" href="https://rayan2162.github.io/ocb-ohara/" target="_blank" rel="noopener noreferrer" title="Browse community-built courses on the Ohara gallery">
+          <i class="bi bi-compass me-1"></i> Discover Courses
+        </a>
         <div class="d-flex align-items-center gap-2">
           <span id="courseCount" class="text-muted small"></span>
           <button class="btn btn-primary btn-sm ocb-action-btn" id="newCourseBtn">
@@ -157,15 +160,6 @@
                     <span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
                   </div>
                   <div class="streaks-month-grid" id="streaksGrid"></div>
-                </div>
-                <div class="streaks-legend">
-                  <span class="text-muted small">Less</span>
-                  <span class="streaks-cell legend-0"></span>
-                  <span class="streaks-cell legend-1"></span>
-                  <span class="streaks-cell legend-2"></span>
-                  <span class="streaks-cell legend-3"></span>
-                  <span class="streaks-cell legend-4"></span>
-                  <span class="text-muted small">More</span>
                 </div>
               </div>
             </div>
@@ -435,17 +429,8 @@
                 </div>
               </div>
               <div class="mb-3" id="lessonNotesSection">
-                <div class="d-flex align-items-center justify-content-between">
+                <div>
                   <label class="form-label mb-0">Notes (optional)</label>
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-secondary"
-                    id="viewNoteBtn"
-                    disabled
-                    title="Open the full note in a modal"
-                  >
-                    <i class="bi bi-arrows-fullscreen"></i> View note
-                  </button>
                 </div>
                 <textarea
                   class="form-control mt-2"
