@@ -1,0 +1,85 @@
+{
+  "id": "b2eea57f-793c-472d-83fd-c23201a63d0b",
+  "title": "React from Scratch",
+  "description": "Build a working React app without the CLI noise. We start with a single HTML file, add JSX, component composition, hooks, and finish with a small router — all in your browser console.",
+  "createdAt": "2026-06-13T17:15:23.306Z",
+  "updatedAt": "2026-06-13T17:16:17.163Z",
+  "lessons": [
+    {
+      "id": "47622722-91fd-46f5-9168-74aecd4b29e3",
+      "title": "Hello, JSX",
+      "type": "text",
+      "resource": "",
+      "notes": "",
+      "lessonNote": "",
+      "isCompleted": false,
+      "completeDate": null,
+      "createdAt": "2026-06-13T17:15:23.313Z"
+    },
+    {
+      "id": "34b65dc2-0a83-425c-b805-ca0d66670cb3",
+      "title": "useState and useEffect",
+      "type": "text",
+      "resource": "",
+      "notes": "",
+      "lessonNote": "",
+      "isCompleted": false,
+      "completeDate": null,
+      "createdAt": "2026-06-13T17:15:23.314Z"
+    },
+    {
+      "id": "610c53c8-d204-4f5b-86d3-5802584d2725",
+      "title": "Components and props",
+      "type": "text",
+      "resource": "",
+      "notes": "",
+      "lessonNote": "",
+      "isCompleted": true,
+      "completeDate": "2026-06-13T17:16:17.163Z",
+      "createdAt": "2026-06-13T17:15:23.314Z"
+    },
+    {
+      "id": "9879e8b8-790d-42ff-9575-d589f741f8a1",
+      "title": "Lifting state up",
+      "type": "text",
+      "resource": "",
+      "notes": "",
+      "lessonNote": "",
+      "isCompleted": false,
+      "completeDate": null,
+      "createdAt": "2026-06-13T17:15:23.314Z"
+    },
+    {
+      "id": "e8162463-f435-4ed3-be77-a955ff9e91c5",
+      "title": "A tiny router, by hand",
+      "type": "text",
+      "resource": "",
+      "notes": "",
+      "lessonNote": "",
+      "isCompleted": false,
+      "completeDate": null,
+      "createdAt": "2026-06-13T17:15:23.314Z"
+    }
+  ],
+  "authors": [
+    {
+      "authorName": "Devon Park",
+      "authorLink": "https://example.com/devon"
+    },
+    {
+      "authorName": "Mariana Cole",
+      "authorLink": "https://example.com/mariana"
+    }
+  ],
+  "tags": [
+    "react",
+    "frontend",
+    "hooks",
+    "spa"
+  ],
+  "courseLanguage": [
+    "english",
+    "korean"
+  ],
+  "tasks": []
+}
